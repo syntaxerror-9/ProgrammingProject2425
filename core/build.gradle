@@ -1,0 +1,26 @@
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+}
+
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+
+eclipse.project.name = appName + "-core"
+
+
+sourceSets {
+    test.java.srcDirs = ['src/test/java']
+    main.java.srcDirs = ['src/main/java']
+}
+
+dependencies {
+    implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
+
+
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: '5.10.2'
+    testRuntimeOnly group: 'org.junit.platform', name: 'junit-platform-launcher', version: '1.10.2'
+}
+test {
+    useJUnitPlatform()
+}
+
