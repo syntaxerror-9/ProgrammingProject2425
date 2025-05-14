@@ -5,6 +5,14 @@ import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.dummy.DummySnapshot;
 import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
 import it.unibz.inf.pp.clash.view.DisplayManager;
+import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
+import it.unibz.inf.pp.clash.model.snapshot.impl.HeroImpl;
+import it.unibz.inf.pp.clash.model.snapshot.impl.BoardImpl;
+import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
+import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
+import static it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor.ONE;
+import static it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor.THREE;
+
 
 public class TestEventHandler implements EventHandler {
     DisplayManager displayManager;
@@ -18,25 +26,67 @@ public class TestEventHandler implements EventHandler {
 
     @Override
     public void newGame(String firstHero, String secondHero) {
-        System.out.println("New game started! " + firstHero + " VS " + secondHero);
-        snapshot = new DummySnapshot(
-                firstHero,
-                secondHero
+        System.out.println("Starting a new game: " + firstHero + " vs " + secondHero);
+
+        _unit = null;
+        previousRowIndex = -1;
+        previousColumnIndex = -1;
+        currentMode = ActionMode.MOVE;
+
+        snapshot = new GameSnapshot(
+                new HeroImpl(firstHero, 20),
+                new HeroImpl(secondHero, 20),
+                BoardImpl.createEmptyBoard(11, 7),
+                Snapshot.Player.FIRST,
+                3
         );
 
-        displayManager.drawSnapshot(snapshot, "New game");
+
+        // units (putting them because otherwise it fucks up the board when creating it (no height of cells)
+        snapshot.getBoard().addUnit(1, 4, new Butterfly(THREE));
+        snapshot.getBoard().addUnit(6, 1, new Butterfly(THREE));
+        snapshot.getBoard().addUnit(6, 2, new Butterfly(ONE));
+
+        displayManager.drawSnapshot(snapshot, "New game started! " + firstHero + " vs " + secondHero);
     }
+
+
 
     @Override
     public void exitGame() {
-        dummyEventHandler.exitGame();
+        System.out.println("Exiting the game.");
+
+
+        snapshot = null;
+        _unit = null;
+        previousRowIndex = -1;
+        previousColumnIndex = -1;
+
+
+        displayManager.drawHomeScreen();
     }
 
     @Override
     public void skipTurn() {
+        if (snapshot == null) {
+            System.out.println("Teh game is not active.");
+            return;
+        }
 
-        dummyEventHandler.skipTurn();
+        if (!(snapshot instanceof GameSnapshot gs)) {
+            System.out.println("Cannot skip the turn, the snapshot is wrong.");
+            return;
+        }
+
+        gs.switchTurn(); 
+
+        System.out.println("Turn skipped. The active player is now: " + gs.getActivePlayer());
+        System.out.println("Remaining actions: " + gs.getNumberOfRemainingActions());
+
+        displayManager.drawSnapshot(gs, "Turn skipped. It's now " + gs.getActivePlayer() + "'s turn.");
     }
+
+
 
     @Override
     public void callReinforcement() {
