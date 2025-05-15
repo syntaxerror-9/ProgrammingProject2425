@@ -2,56 +2,94 @@ package it.unibz.inf.pp.clash.model.impl;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import it.unibz.inf.pp.clash.model.BoardInitializer;
 import it.unibz.inf.pp.clash.model.EventHandler;
+import it.unibz.inf.pp.clash.model.MoveHandler;
+import it.unibz.inf.pp.clash.model.movehandlers.HumanMoveHandler;
+import it.unibz.inf.pp.clash.model.snapshot.Board;
+import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
+import it.unibz.inf.pp.clash.model.snapshot.impl.NormalizedBoardImpl;
 import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
+import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
 import it.unibz.inf.pp.clash.view.DisplayManager;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.HeroImpl;
 import it.unibz.inf.pp.clash.model.snapshot.impl.BoardImpl;
+import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
+
 import static it.unibz.inf.pp.clash.logic.GameSnapshotUtils.*;
+
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Unicorn;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 
-
+import java.util.Random;
+import java.util.function.Function;
 
 
 public class TestEventHandler implements EventHandler {
     DisplayManager displayManager;
     DummyEventHandler dummyEventHandler;
     Snapshot snapshot;
+    MoveHandler moveHandler;
 
     public TestEventHandler(DisplayManager displayManager) {
         this.dummyEventHandler = new DummyEventHandler(displayManager);
         this.displayManager = displayManager;
+        this.moveHandler = new HumanMoveHandler();
     }
+
 
     @Override
     public void newGame(String firstHero, String secondHero) {
+        newGame(firstHero, secondHero, this::initializeBoardRandom, 7, 11);
+    }
+
+    public void newGame(String firstHero, String secondHero, BoardInitializer boardInitializer, int boardWidth, int boardHeight) {
         System.out.println("Starting a new game: " + firstHero + " vs " + secondHero);
-
-
-
-        _unit = null;
-        previousRowIndex = -1;
-        previousColumnIndex = -1;
-
         snapshot = new GameSnapshot(
                 new HeroImpl(firstHero, 20),
                 new HeroImpl(secondHero, 20),
-                BoardImpl.createEmptyBoard(11, 7),
+                BoardImpl.createEmptyBoard(boardHeight, boardWidth),
                 Snapshot.Player.FIRST,
                 3
         );
 
-
-        // units (putting them because otherwise it fucks up the board when creating it (no height of cells)
-        placeRandomButterflies((GameSnapshot) snapshot, 5, new int[]{6, 7, 8});
-        placeRandomButterflies((GameSnapshot) snapshot, 5, new int[]{3, 4, 5});
+        @SuppressWarnings("unchecked")
+        Function<MobileUnit.UnitColor, MobileUnit>[] unitsConstructors = new Function[]{
+                (Function<MobileUnit.UnitColor, MobileUnit>) Butterfly::new,
+                (Function<MobileUnit.UnitColor, MobileUnit>) Unicorn::new
+        };
+        boardInitializer.apply(snapshot.getBoard(), 8, unitsConstructors);
 
         displayManager.drawSnapshot(snapshot, "New game started! " + firstHero + " vs " + secondHero);
     }
 
+
+    private int findAvailableRandomSpot(NormalizedBoard normalizedBoard) {
+        var random = new Random();
+        int columnIndex = random.nextInt(normalizedBoard.getMaxColumnIndex() + 1);
+        while (!normalizedBoard.canPlaceInColumn(columnIndex)) {
+            columnIndex = random.nextInt(normalizedBoard.getMaxColumnIndex() + 1);
+        }
+        return columnIndex;
+    }
+
+    private void initializeBoardRandom(Board board, int amount, Function<MobileUnit.UnitColor, MobileUnit>[] unitConstructors) {
+        var normalizedBoardP1 = NormalizedBoardImpl.createNormalizedBoard(board, Snapshot.Player.FIRST);
+        var normalizedBoardP2 = NormalizedBoardImpl.createNormalizedBoard(board, Snapshot.Player.SECOND);
+
+        var random = new Random();
+
+        for (int i = 0; i < amount; i++) {
+            int p1Index = findAvailableRandomSpot(normalizedBoardP1), p2Index = findAvailableRandomSpot(normalizedBoardP2);
+            UnitColor p1Color = UnitColor.values()[random.nextInt(3)], p2Color = UnitColor.values()[random.nextInt(3)];
+            MobileUnit unit1 = unitConstructors[random.nextInt(unitConstructors.length)].apply(p1Color), unit2 = unitConstructors[random.nextInt(unitConstructors.length)].apply(p2Color);
+            normalizedBoardP1.addUnit(p1Index, unit1);
+            normalizedBoardP2.addUnit(p2Index, unit2);
+
+        }
+    }
 
 
     @Override
@@ -80,14 +118,13 @@ public class TestEventHandler implements EventHandler {
             return;
         }
 
-        gs.switchTurn(); 
+        gs.switchTurn();
 
         System.out.println("Turn skipped. The active player is now: " + gs.getActivePlayer());
         System.out.println("Remaining actions: " + gs.getNumberOfRemainingActions());
 
         displayManager.drawSnapshot(gs, "Turn skipped. It's now " + gs.getActivePlayer() + "'s turn.");
     }
-
 
 
     @Override
@@ -110,8 +147,6 @@ public class TestEventHandler implements EventHandler {
     }
 
 
-
-
     @Override
     public void requestInformation(int rowIndex, int columnIndex) {
         dummyEventHandler.requestInformation(rowIndex, columnIndex);
@@ -129,88 +164,21 @@ public class TestEventHandler implements EventHandler {
         if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
             handleDelete(rowIndex, columnIndex);
         } else {
+            System.out.println("Handle move");
             handleMove(rowIndex, columnIndex);
         }
 
 
-
     }
 
-// UPDATED move unit method (now you can overlay 2 same color units for an upgrade)
-private void handleMove(int rowIndex, int columnIndex) {
-    if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
+    // UPDATED move unit method (now you can overlay 2 same color units for an upgrade)
+    private void handleMove(int rowIndex, int columnIndex) {
+        if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
 
-    var clicked = snapshot.getBoard().getUnit(rowIndex, columnIndex);
+        moveHandler.handleMove(rowIndex, columnIndex, snapshot);
 
-    if (clicked.isPresent() && _unit == null) {
-        _unit = clicked.get();
-        previousRowIndex = rowIndex;
-        previousColumnIndex = columnIndex;
-        displayManager.drawSnapshot(snapshot, "Unit selected.");
-        return;
+        displayManager.drawSnapshot(snapshot, "Moved.");
     }
-
-    if (_unit == null) return;
-
-    // second click
-    if (clicked.isPresent()) {
-
-        //checkups
-        if (!(_unit instanceof MobileUnit moving)) {
-            displayManager.drawSnapshot(snapshot, "Only mobile units can move.");
-            return;
-        }
-
-        if (rowIndex == previousRowIndex && columnIndex == previousColumnIndex) {
-            displayManager.drawSnapshot(snapshot, "Nice try hehe.");
-            return;
-        }
-
-        var target = clicked.get();
-
-        if (!(target instanceof MobileUnit targetMobile)) {
-            displayManager.drawSnapshot(snapshot, "Cannot move there.");
-            return;
-        }
-
-        if (!moving.getColor().equals(targetMobile.getColor())) {
-            displayManager.drawSnapshot(snapshot, "Cannot move onto a unit of different color.");
-            return;
-        }
-
-        if (!moving.getClass().equals(targetMobile.getClass())) {
-            displayManager.drawSnapshot(snapshot, "You cant fuse two different classes.");
-            return;
-        }
-
-        // creating a unicorn
-        snapshot.getBoard().removeUnit(rowIndex, columnIndex);
-        snapshot.getBoard().removeUnit(previousRowIndex, previousColumnIndex);
-        snapshot.getBoard().addUnit(rowIndex, columnIndex, new Unicorn(moving.getColor()));
-
-        _unit = null;
-        previousRowIndex = -1;
-        previousColumnIndex = -1;
-
-        displayManager.drawSnapshot(snapshot, "Upgrade!!! An unicorn appears.");
-        consumeAction((GameSnapshot) snapshot, displayManager);
-        return;
-    }
-
-    // normal movement
-    snapshot.getBoard().addUnit(rowIndex, columnIndex, _unit);
-    snapshot.getBoard().removeUnit(previousRowIndex, previousColumnIndex);
-
-    _unit = null;
-    previousRowIndex = -1;
-    previousColumnIndex = -1;
-
-    displayManager.drawSnapshot(snapshot, "Moved.");
-    consumeAction((GameSnapshot) snapshot, displayManager);
-}
-
-
-
 
 
     // delete unit method
@@ -236,10 +204,11 @@ private void handleMove(int rowIndex, int columnIndex) {
     @Override
     public void deleteUnit(int rowIndex, int columnIndex) {
         dummyEventHandler.deleteUnit(rowIndex, columnIndex);
-
     }
 
-
+    public Snapshot getSnapshot() {
+        return snapshot;
+    }
 
 
 }
