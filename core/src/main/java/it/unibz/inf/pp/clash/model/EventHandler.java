@@ -1,5 +1,7 @@
 package it.unibz.inf.pp.clash.model;
 
+
+
 public interface EventHandler {
 
     /**
@@ -7,7 +9,8 @@ public interface EventHandler {
      *
      * @param firstHero name of the hero for the first player
      * @param secondHero name of the hero for the second player
-     */
+     **/
+
     void newGame(String firstHero, String secondHero);
 
     /**
@@ -47,6 +50,8 @@ public interface EventHandler {
      * - if there is no ongoing move and the tile is empty,
      * - etc.
      */
+
+
     void selectTile(int rowIndex, int columnIndex);
 
     /**
@@ -60,6 +65,10 @@ public interface EventHandler {
      * - if there is an ongoing move,
      * - etc.
      */
+
+
+
+
     void deleteUnit(int rowIndex, int columnIndex);
 
 }

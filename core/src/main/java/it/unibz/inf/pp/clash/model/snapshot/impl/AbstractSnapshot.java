@@ -14,8 +14,8 @@ public abstract class AbstractSnapshot implements Snapshot {
     private final Hero firstHero;
     private final Hero secondHero;
 
-    private Player activeplayer;
-    private int actionsRemaining;
+    protected Player activeplayer;
+    protected int actionsRemaining;
     protected TileCoordinates ongoingMove;
 
     protected AbstractSnapshot(Hero firstHero, Hero secondHero, Board board, Player activeplayer, int actionsRemaining,
