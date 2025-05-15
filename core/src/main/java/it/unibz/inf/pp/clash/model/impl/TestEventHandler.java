@@ -12,8 +12,8 @@ import it.unibz.inf.pp.clash.model.snapshot.impl.BoardImpl;
 import static it.unibz.inf.pp.clash.logic.GameSnapshotUtils.*;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Unicorn;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
-
-
+import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
+import static it.unibz.inf.pp.clash.logic.GameSnapshotUtils.handleTurnEndAbilities;
 
 
 public class TestEventHandler implements EventHandler {
@@ -80,7 +80,10 @@ public class TestEventHandler implements EventHandler {
             return;
         }
 
-        gs.switchTurn(); 
+        Snapshot.Player previousPlayer = gs.getActivePlayer();
+        gs.switchTurn();
+        handleTurnEndAbilities(gs, previousPlayer);
+
 
         System.out.println("Turn skipped. The active player is now: " + gs.getActivePlayer());
         System.out.println("Remaining actions: " + gs.getNumberOfRemainingActions());
@@ -183,7 +186,21 @@ private void handleMove(int rowIndex, int columnIndex) {
             return;
         }
 
-        // creating a unicorn
+        // merging units
+        if (moving.getClass().equals(Unicorn.class)) {
+            snapshot.getBoard().removeUnit(rowIndex, columnIndex);
+            snapshot.getBoard().removeUnit(previousRowIndex, previousColumnIndex);
+            snapshot.getBoard().addUnit(rowIndex, columnIndex, new Fairy(moving.getColor()));
+
+            _unit = null;
+            previousRowIndex = -1;
+            previousColumnIndex = -1;
+
+            displayManager.drawSnapshot(snapshot, "Final Upgrade! A wild fairy appears.");
+            consumeAction((GameSnapshot) snapshot, displayManager);
+            return;
+        }
+
         snapshot.getBoard().removeUnit(rowIndex, columnIndex);
         snapshot.getBoard().removeUnit(previousRowIndex, previousColumnIndex);
         snapshot.getBoard().addUnit(rowIndex, columnIndex, new Unicorn(moving.getColor()));
