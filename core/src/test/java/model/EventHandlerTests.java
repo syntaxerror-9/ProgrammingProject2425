@@ -3,10 +3,10 @@ package model;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import it.unibz.inf.pp.clash.logic.Utils;
-import it.unibz.inf.pp.clash.model.impl.TestEventHandler;
-import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
+import it.unibz.inf.pp.clash.model.impl.GameEventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.NormalizedBoardImpl;
+import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
 import it.unibz.inf.pp.clash.view.DisplayManager;
@@ -29,7 +29,7 @@ public class EventHandlerTests {
 
     @Test
     public void itShouldMoveAUnit() {
-        var eventHandler = new TestEventHandler(displayManager);
+        var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
             var normalizedP1Board = NormalizedBoardImpl.createNormalizedBoard(board, Snapshot.Player.FIRST);
             normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));
@@ -51,7 +51,7 @@ public class EventHandlerTests {
 
     @Test
     public void itShouldMoveAUnitToTheSameColumn() {
-        var eventHandler = new TestEventHandler(displayManager);
+        var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
             var normalizedP1Board = NormalizedBoardImpl.createNormalizedBoard(board, Snapshot.Player.FIRST);
             normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));
@@ -81,5 +81,27 @@ public class EventHandlerTests {
 
         normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
         assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
+    }
+
+    @Test
+    public void itShouldMergeWithAUnit() {
+
+        var eventHandler = new GameEventHandler(displayManager);
+        eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
+            var normalizedP1Board = NormalizedBoardImpl.createNormalizedBoard(board, Snapshot.Player.FIRST);
+            normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));
+            normalizedP1Board.addUnit(1, new Butterfly(UnitColor.ONE));
+        }, 3, 5);
+
+        var snapshot = eventHandler.getSnapshot();
+        var normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
+        assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
+        Utils.PrintBoard(snapshot.getBoard());
+
+        normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
+        assertTrue(normalizedPlayerBoard.getUnit(0).isEmpty());
+        assertEquals(2, ((MobileUnit) normalizedPlayerBoard.getUnit(1).get()).getLevel());
+
+
     }
 }

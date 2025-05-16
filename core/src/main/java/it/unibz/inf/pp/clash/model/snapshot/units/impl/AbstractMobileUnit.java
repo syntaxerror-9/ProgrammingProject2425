@@ -39,4 +39,11 @@ public abstract class AbstractMobileUnit extends AbstractUnit implements MobileU
     public void setAttackCountdown(int attackCountDown) {
         this.attackCountDown = attackCountDown;
     }
+
+    @Override
+    public boolean matches(MobileUnit unit) {
+        return this.getClass() == unit.getClass() && this.color == unit.getColor();
+    }
+
+
 }

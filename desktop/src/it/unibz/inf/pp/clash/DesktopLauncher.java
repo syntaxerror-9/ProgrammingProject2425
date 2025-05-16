@@ -4,8 +4,7 @@ import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import it.unibz.inf.pp.clash.model.EventHandler;
-import it.unibz.inf.pp.clash.model.impl.DummyEventHandler;
-import it.unibz.inf.pp.clash.model.impl.TestEventHandler;
+import it.unibz.inf.pp.clash.model.impl.GameEventHandler;
 import it.unibz.inf.pp.clash.view.DisplayManager;
 import it.unibz.inf.pp.clash.view.impl.DisplayManagerImpl;
 
@@ -22,7 +21,7 @@ public class DesktopLauncher {
 
         DisplayManager displayManager = new DisplayManagerImpl(false);
 
-        EventHandler eventHandler = new TestEventHandler(displayManager);
+        EventHandler eventHandler = new GameEventHandler(displayManager);
         // The display manager and the event handler reference each other.
         // So we did not pass the latter to the constructor of the former.
         displayManager.setEventHandler(eventHandler);

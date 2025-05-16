@@ -34,5 +34,6 @@ public class GameSnapshot extends AbstractSnapshot {
     public int getSizeOfReinforcement(Player player) {
         return 3;
     }
+
 }
 

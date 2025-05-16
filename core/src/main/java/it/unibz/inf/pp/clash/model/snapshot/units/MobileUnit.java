@@ -22,4 +22,9 @@ public interface MobileUnit extends Unit, UpgradableUnit {
      * scheduled for this unit.
      */
     void setAttackCountdown(int attackCountDown);
+
+    /**
+     * @return whether this unit is a "match" for a possible formation with another unit
+     */
+    boolean matches(MobileUnit unit);
 }

@@ -21,19 +21,21 @@ import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
 import static it.unibz.inf.pp.clash.logic.GameSnapshotUtils.*;
 
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Unicorn;
+import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 
 import java.util.Random;
 import java.util.function.Function;
 
 
-public class TestEventHandler implements EventHandler {
+public class GameEventHandler implements EventHandler {
     DisplayManager displayManager;
     DummyEventHandler dummyEventHandler;
     Snapshot snapshot;
     MoveHandler moveHandler;
+    NormalizedBoard normalizedBoardP1, normalizedBoardP2;
 
-    public TestEventHandler(DisplayManager displayManager) {
+    public GameEventHandler(DisplayManager displayManager) {
         this.dummyEventHandler = new DummyEventHandler(displayManager);
         this.displayManager = displayManager;
         this.moveHandler = new HumanMoveHandler();
@@ -55,10 +57,14 @@ public class TestEventHandler implements EventHandler {
                 3
         );
 
+        normalizedBoardP1 = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
+        normalizedBoardP2 = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.SECOND);
+
         @SuppressWarnings("unchecked")
         Function<MobileUnit.UnitColor, MobileUnit>[] unitsConstructors = new Function[]{
                 (Function<MobileUnit.UnitColor, MobileUnit>) Butterfly::new,
-                (Function<MobileUnit.UnitColor, MobileUnit>) Unicorn::new
+                (Function<MobileUnit.UnitColor, MobileUnit>) Unicorn::new,
+                (Function<MobileUnit.UnitColor, MobileUnit>) Fairy::new
         };
         boardInitializer.apply(snapshot.getBoard(), 8, unitsConstructors);
 
@@ -67,8 +73,16 @@ public class TestEventHandler implements EventHandler {
 
 
     private int findAvailableRandomSpot(NormalizedBoard normalizedBoard) {
+        if (normalizedBoard.isFull()) {
+            System.out.println("The board is full, no available spots.");
+            return -1;
+        }
+
+
         var random = new Random();
         int columnIndex = random.nextInt(normalizedBoard.getMaxColumnIndex() + 1);
+
+
         while (!normalizedBoard.canPlaceInColumn(columnIndex)) {
             columnIndex = random.nextInt(normalizedBoard.getMaxColumnIndex() + 1);
         }
@@ -76,11 +90,7 @@ public class TestEventHandler implements EventHandler {
     }
 
     private void initializeBoardRandom(Board board, int amount, Function<MobileUnit.UnitColor, MobileUnit>[] unitConstructors) {
-        var normalizedBoardP1 = NormalizedBoardImpl.createNormalizedBoard(board, Snapshot.Player.FIRST);
-        var normalizedBoardP2 = NormalizedBoardImpl.createNormalizedBoard(board, Snapshot.Player.SECOND);
-
         var random = new Random();
-
         for (int i = 0; i < amount; i++) {
             int p1Index = findAvailableRandomSpot(normalizedBoardP1), p2Index = findAvailableRandomSpot(normalizedBoardP2);
             UnitColor p1Color = UnitColor.values()[random.nextInt(3)], p2Color = UnitColor.values()[random.nextInt(3)];
@@ -94,15 +104,7 @@ public class TestEventHandler implements EventHandler {
 
     @Override
     public void exitGame() {
-        System.out.println("Exiting the game.");
-
-
         snapshot = null;
-        _unit = null;
-        previousRowIndex = -1;
-        previousColumnIndex = -1;
-
-
         displayManager.drawHomeScreen();
     }
 
@@ -131,6 +133,7 @@ public class TestEventHandler implements EventHandler {
     public void callReinforcement() {
         if (!(snapshot instanceof GameSnapshot)) return;
         GameSnapshot gs = (GameSnapshot) snapshot;
+        var currentBoard = getCurrentBoard();
 
         Snapshot.Player player = gs.getActivePlayer();
         int reinforcements = gs.getSizeOfReinforcement(player);
@@ -140,8 +143,11 @@ public class TestEventHandler implements EventHandler {
             return;
         }
 
-        int[] targetRows = (player == Snapshot.Player.FIRST) ? new int[]{6, 7, 8} : new int[]{3, 4, 5};
-        placeRandomButterflies(gs, reinforcements, targetRows);
+        for (int i = 0; i < reinforcements; i++) {
+            int columnIndex = findAvailableRandomSpot(currentBoard);
+            UnitColor color = UnitColor.values()[new Random().nextInt(3)];
+            currentBoard.addUnit(columnIndex, new Butterfly(color));
+        }
 
         consumeAction(gs, displayManager);
     }
@@ -153,44 +159,45 @@ public class TestEventHandler implements EventHandler {
 
     }
 
-    Unit _unit = null;
-    int previousRowIndex, previousColumnIndex;
-
 
     @Override
     public void selectTile(int rowIndex, int columnIndex) {
+        handleMove(rowIndex, columnIndex);
+    }
 
-        // action mode (move or delete)
-        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
-            handleDelete(rowIndex, columnIndex);
+    private NormalizedBoard getCurrentBoard() {
+        NormalizedBoard board;
+        if (snapshot.getActivePlayer() == Snapshot.Player.FIRST) {
+            board = normalizedBoardP1;
         } else {
-            System.out.println("Handle move");
-            handleMove(rowIndex, columnIndex);
+            board = normalizedBoardP2;
         }
-
-
+        return board;
     }
 
     // UPDATED move unit method (now you can overlay 2 same color units for an upgrade)
     private void handleMove(int rowIndex, int columnIndex) {
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
 
-        moveHandler.handleMove(rowIndex, columnIndex, snapshot);
+        if (moveHandler.handleMove(rowIndex, columnIndex, getCurrentBoard())) {
+            displayManager.drawSnapshot(snapshot, "Moved.");
+            consumeAction((GameSnapshot) snapshot, displayManager);
+        } else {
+            displayManager.drawSnapshot(snapshot, "Not moved");
+        }
 
-        displayManager.drawSnapshot(snapshot, "Moved.");
     }
 
 
     // delete unit method
     private void handleDelete(int rowIndex, int columnIndex) {
-        var unit = snapshot.getBoard().getUnit(rowIndex, columnIndex);
-
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
 
-        if (unit.isPresent()) {
+        var board = getCurrentBoard();
+        var unit = board.getUnit(board.normalizeRowIndex(rowIndex), columnIndex);
 
-            System.out.println("Deleting the unit at " + rowIndex + " " + columnIndex);
-            snapshot.getBoard().removeUnit(rowIndex, columnIndex);
+        if (unit.isPresent()) {
+            board.removeUnit(board.normalizeRowIndex(rowIndex), columnIndex);
             displayManager.drawSnapshot(snapshot, "Unit deleted! :D");
             consumeAction((GameSnapshot) snapshot, displayManager);
         } else {
@@ -200,10 +207,10 @@ public class TestEventHandler implements EventHandler {
     }
 
 
-    //non serve
+    //non serve???
     @Override
     public void deleteUnit(int rowIndex, int columnIndex) {
-        dummyEventHandler.deleteUnit(rowIndex, columnIndex);
+        handleDelete(rowIndex, columnIndex);
     }
 
     public Snapshot getSnapshot() {

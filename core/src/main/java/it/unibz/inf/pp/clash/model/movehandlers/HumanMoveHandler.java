@@ -5,7 +5,6 @@ import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.NormalizedBoardImpl;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
-import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
 import it.unibz.inf.pp.clash.model.snapshot.units.UpgradableUnit;
 
 public class HumanMoveHandler implements MoveHandler {
@@ -13,41 +12,47 @@ public class HumanMoveHandler implements MoveHandler {
 
     int previousColumnIndex = -1;
 
-    @Override
-    public Snapshot handleMove(int rowIndex, int columnIndex, Snapshot currentSnapshot) {
-        var board = currentSnapshot.getBoard();
 
-        var playerBoard = NormalizedBoardImpl.createNormalizedBoard(board, currentSnapshot.getActivePlayer());
+    @Override
+    public boolean handleMove(int rowIndex, int columnIndex, NormalizedBoard board) {
+
 
         if (previousColumnIndex == -1) {
-            previousColumnIndex = columnIndex;
-            System.out.println("Column index " + columnIndex + " row index " + rowIndex);
+            if (board.getUnit(board.normalizeRowIndex(rowIndex), columnIndex).isPresent()) {
+                previousColumnIndex = columnIndex;
+            }
+
         } else {
-            var selectedUnit = playerBoard.getUnit(previousColumnIndex);
-            rowIndex = playerBoard.getNormalizedRowIndex(rowIndex);
+            var selectedUnit = board.getUnit(previousColumnIndex);
+            rowIndex = board.normalizeRowIndex(rowIndex);
 
             if (selectedUnit.isPresent() && selectedUnit.get() instanceof MobileUnit selectedMobileUnit) {
 
-                if (isMoveUnitMove(playerBoard, selectedMobileUnit, columnIndex, rowIndex)) {
-                    handleMove(playerBoard, selectedMobileUnit, columnIndex);
-                } else if (isUpgradeUnitMove(playerBoard, selectedMobileUnit, columnIndex, rowIndex)) {
-                    handleUpgrade(playerBoard, selectedMobileUnit, columnIndex, rowIndex);
+                if (isMoveUnitMove(board, selectedMobileUnit, columnIndex, rowIndex)) {
+                    moveTurn(board, selectedMobileUnit, columnIndex);
+                } else if (isUpgradeUnitMove(board, selectedMobileUnit, columnIndex, rowIndex)) {
+                    upgradeTurn(board, selectedMobileUnit, columnIndex, rowIndex);
                 } else {
-                    System.out.println("Invalid move");
+                    System.out.printf("Invalid move from column %d to column %d", previousColumnIndex, columnIndex);
+                    previousColumnIndex = -1;
+                    return false;
                 }
+                System.out.printf("Moved unit from column %d to column %d", previousColumnIndex, columnIndex);
                 previousColumnIndex = -1;
+
+                return true;
             }
 
         }
-        return currentSnapshot;
+        return false;
     }
 
-    private void handleMove(NormalizedBoard playerBoard, MobileUnit selectedUnit, int columnIndex) {
+    private void moveTurn(NormalizedBoard playerBoard, MobileUnit selectedUnit, int columnIndex) {
         playerBoard.removeUnit(previousColumnIndex);
         playerBoard.addUnit(columnIndex, selectedUnit);
     }
 
-    private void handleUpgrade(NormalizedBoard playerBoard, MobileUnit selectedUnit, int columnIndex, int rowIndex) {
+    private void upgradeTurn(NormalizedBoard playerBoard, MobileUnit selectedUnit, int columnIndex, int rowIndex) {
         playerBoard.removeUnit(previousColumnIndex);
         var targetUnit = playerBoard.getUnit(rowIndex, columnIndex);
         if (targetUnit.isPresent() && targetUnit.get() instanceof UpgradableUnit upgradableUnit) {
@@ -57,6 +62,7 @@ public class HumanMoveHandler implements MoveHandler {
 
     private boolean isMoveUnitMove(NormalizedBoard playerBoard, MobileUnit selectedUnit, int columnIndex, int rowIndex) {
         if (isUpgradeUnitMove(playerBoard, selectedUnit, columnIndex, rowIndex)) return false;
+        if (columnIndex == previousColumnIndex) return false;
         return playerBoard.canPlaceInColumn(columnIndex);
     }
 

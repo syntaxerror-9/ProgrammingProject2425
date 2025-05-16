@@ -4,16 +4,17 @@ import it.unibz.inf.pp.clash.model.exceptions.CoordinatesOutOfBoardException;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
+import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
 
-import java.util.Optional;
-import java.util.Stack;
+import java.util.*;
 
 public class NormalizedBoardImpl implements NormalizedBoard {
 
 
     private Board board;
     private Snapshot.Player player;
+    // TODO: A dequeue might be more appropriate
     private Stack<Unit>[] normalizedBoard;
 
     public static NormalizedBoard createNormalizedBoard(Board board, Snapshot.Player player) {
@@ -31,7 +32,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
 
     @Override
     public int getMaxRowIndex() {
-        return (board.getMaxRowIndex() + 1) / 2;
+        return (board.getMaxRowIndex()) / 2;
     }
 
     @Override
@@ -52,15 +53,26 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     }
 
     @Override
+    public Snapshot.Player getPlayer() {
+        return player;
+    }
+
+    @Override
     public boolean canPlaceInColumn(int columnIndex) {
         var stack = normalizedBoard[columnIndex];
-        return stack.size() < getMaxRowIndex();
+        return stack.size() <= getMaxRowIndex();
+    }
+
+    @Override
+    public boolean isFull() {
+        return Arrays.stream(normalizedBoard).allMatch(stack -> stack.size() >= (getMaxRowIndex() + 1));
     }
 
     @Override
     public void addUnit(int rowIndex, int columnIndex, Unit unit) {
         checkBoundaries(rowIndex, columnIndex);
-        board.addUnit(getRealRowIndex(rowIndex), columnIndex, unit);
+        checkForFormations();
+        applyBoardState();
     }
 
     @Override
@@ -75,6 +87,11 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     public void removeUnit(int rowIndex, int columnIndex) {
         checkBoundaries(rowIndex, columnIndex);
         board.removeUnit(getRealRowIndex(rowIndex), columnIndex);
+        var stack = normalizedBoard[columnIndex];
+        stack.remove(rowIndex);
+        checkForFormations();
+        applyBoardState();
+
     }
 
 
@@ -83,27 +100,28 @@ public class NormalizedBoardImpl implements NormalizedBoard {
         var stack = normalizedBoard[columnIndex];
         var stackTop = stack.size() - 1;
         if (stackTop >= 0) {
-            stack.pop();
             removeUnit(stackTop, columnIndex);
         }
     }
 
     @Override
-    public int getNormalizedRowIndex(int rowIndex) {
+    public int normalizeRowIndex(int rowIndex) {
+        var middle = (board.getMaxRowIndex() + 1) / 2;
         if (player == Snapshot.Player.FIRST) {
             // map 6->0 7->1 .. 11->5
-            return rowIndex - ((board.getMaxRowIndex() + 1) / 2);
+            return rowIndex - middle;
         } else {
             // map 5->0 4->1 .. 0->5
-            return Math.abs(rowIndex - (board.getMaxRowIndex()) / 2);
+            return middle - rowIndex - 1;
         }
     }
 
     private int getRealRowIndex(int normalizedRowIndex) {
+        var middle = (board.getMaxRowIndex() + 1) / 2;
         if (player == Snapshot.Player.FIRST) {
-            return normalizedRowIndex + ((board.getMaxRowIndex() + 1) / 2);
+            return normalizedRowIndex + middle;
         } else {
-            return Math.abs(normalizedRowIndex - (board.getMaxRowIndex()) / 2);
+            return Math.abs(normalizedRowIndex - middle + 1);
         }
     }
 
@@ -133,4 +151,85 @@ public class NormalizedBoardImpl implements NormalizedBoard {
             throw new CoordinatesOutOfBoardException(rowIndex, columnIndex, getMaxRowIndex(), getMaxColumnIndex());
         }
     }
+
+    record FormationChange(int toRow, int fromRow, List<Unit> formation) {
+    }
+
+    private void checkForFormations() {
+
+        for (var stack : normalizedBoard) {
+            // Check for attacking formations
+            if (stack.size() >= 3) {
+                var formationChanges = new ArrayList<FormationChange>();
+                var formationCount = 0;
+                Unit previousElement = null;
+                for (int i = 0; i < stack.size(); i++) {
+                    // If previous element is not null
+                    if (previousElement != null) {
+                        // Then check if the previous element is a mobile unit
+                        if (previousElement instanceof MobileUnit previousMobileUnit && stack.get(i) instanceof MobileUnit currentMobileUnit) {
+                            // If it is a mobile unit, then check if it matches
+                            if (previousMobileUnit.matches(currentMobileUnit)) {
+                                // If it matches, then we should add it to the formation count
+                                formationCount++;
+                            } else {
+                                // If it doesn't match, then we restart the formation count
+                                formationCount = 1;
+                                previousElement = stack.get(i);
+                            }
+                        } else {
+                            // If it's not a mobile unit, then it's a wall and it doesn't count.
+                            previousElement = null;
+                            formationCount = 0;
+                        }
+                    } else {
+                        // If it's null, we either just started or we have a wall
+                        previousElement = stack.get(i);
+                        if (previousElement instanceof MobileUnit) {
+                            formationCount = 1;
+                        } else {
+                            formationCount = 0;
+                        }
+                    }
+
+                    if (formationCount == 3) {
+                        // We have an attack formation vertically
+                        System.out.println("APPLYING BOARD STATE");
+                        var formationStart = i - 2;
+
+                        var formation = new ArrayList<Unit>(stack.subList(formationStart, i + 1));
+                        formationChanges.add(new FormationChange(0, formationStart, formation));
+                    }
+                }
+                for (var formationChange : formationChanges) {
+                    stack.removeAll(formationChange.formation());
+                    stack.addAll(formationChange.toRow, formationChange.formation());
+                }
+            }
+
+        }
+    }
+
+    // Applies the normalized board state to the actual board. Making sure they're always in sync.
+    void applyBoardState() {
+        // Completely reset this player's side of the board
+        for (int i = 0; i <= getMaxColumnIndex(); i++) {
+            for (int j = 0; j <= getMaxRowIndex(); j++) {
+                var row = getRealRowIndex(j);
+                var col = i;
+                board.getUnit(row, col).ifPresent(u -> board.removeUnit(row, col));
+            }
+        }
+
+        for (int i = 0; i <= getMaxColumnIndex(); i++) {
+            var stack = normalizedBoard[i];
+            for (int j = 0; j < stack.size(); j++) {
+                var row = getRealRowIndex(j);
+                var col = i;
+                board.addUnit(row, col, stack.get(j));
+            }
+        }
+
+    }
+
 }

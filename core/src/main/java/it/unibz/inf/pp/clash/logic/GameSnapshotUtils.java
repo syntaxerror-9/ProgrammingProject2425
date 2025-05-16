@@ -55,8 +55,8 @@ public class GameSnapshotUtils {
         if (!(snapshot instanceof GameSnapshot gs)) return false;
 
         boolean isValid = switch (gs.getActivePlayer()) {
-            case FIRST -> rowIndex >= snapshot.getBoard().getMaxRowIndex() / 2;
-            case SECOND -> rowIndex <= (snapshot.getBoard().getMaxRowIndex() / 2) - 1;
+            case FIRST -> rowIndex >= (snapshot.getBoard().getMaxRowIndex() / 2) + 1;
+            case SECOND -> rowIndex <= (snapshot.getBoard().getMaxRowIndex() / 2);
         };
 
         if (!isValid) {

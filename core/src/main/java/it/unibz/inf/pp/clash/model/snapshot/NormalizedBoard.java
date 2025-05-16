@@ -10,7 +10,7 @@ import java.util.Stack;
  * It is an array of stacks, where each stack represents a column.
  */
 public interface NormalizedBoard extends Board {
-    int getNormalizedRowIndex(int rowIndex);
+    int normalizeRowIndex(int rowIndex);
 
     Stack<Unit>[] getNormalizedBoard();
 
@@ -20,6 +20,10 @@ public interface NormalizedBoard extends Board {
 
     Optional<Unit> getUnit(int columnIndex);
 
+    Snapshot.Player getPlayer();
+
     boolean canPlaceInColumn(int columnIndex);
+
+    boolean isFull();
 
 }
