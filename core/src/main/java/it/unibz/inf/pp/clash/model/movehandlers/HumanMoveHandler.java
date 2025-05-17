@@ -9,9 +9,7 @@ import it.unibz.inf.pp.clash.model.snapshot.units.UpgradableUnit;
 
 public class HumanMoveHandler implements MoveHandler {
 
-
     int previousColumnIndex = -1;
-
 
     @Override
     public boolean handleMove(int rowIndex, int columnIndex, NormalizedBoard board) {
@@ -21,7 +19,6 @@ public class HumanMoveHandler implements MoveHandler {
             if (board.getUnit(board.normalizeRowIndex(rowIndex), columnIndex).isPresent()) {
                 previousColumnIndex = columnIndex;
             }
-
         } else {
             var selectedUnit = board.getUnit(previousColumnIndex);
             rowIndex = board.normalizeRowIndex(rowIndex);

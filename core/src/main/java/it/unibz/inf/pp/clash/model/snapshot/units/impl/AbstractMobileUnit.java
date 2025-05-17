@@ -7,10 +7,24 @@ public abstract class AbstractMobileUnit extends AbstractUnit implements MobileU
     final UnitColor color;
     int attackCountDown = -1;
     int level = 1;
+    final int initialAttackCountdown;
+    final int attackDamage;
 
-    protected AbstractMobileUnit(int health, UnitColor color) {
+    protected AbstractMobileUnit(int health, UnitColor color, int initialAttackCountdown, int attackDamage) {
         super(health);
         this.color = color;
+        this.initialAttackCountdown = initialAttackCountdown;
+        this.attackDamage = attackDamage;
+    }
+
+    @Override
+    public int getAttackDamage() {
+        return attackDamage;
+    }
+
+    @Override
+    public int getInitialAttackCountdown() {
+        return initialAttackCountdown;
     }
 
     @Override

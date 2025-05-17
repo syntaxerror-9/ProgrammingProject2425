@@ -24,6 +24,10 @@ public interface NormalizedBoard extends Board {
 
     boolean canPlaceInColumn(int columnIndex);
 
+    void updateFormations(Hero enemyHero, NormalizedBoard enemyBoard);
+
     boolean isFull();
+
+    int takeDamage(int damage, int column);
 
 }

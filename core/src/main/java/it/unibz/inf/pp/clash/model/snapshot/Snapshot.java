@@ -3,6 +3,7 @@ package it.unibz.inf.pp.clash.model.snapshot;
 import java.util.Optional;
 
 import static it.unibz.inf.pp.clash.model.snapshot.Board.TileCoordinates;
+
 public interface Snapshot {
 
     enum Player {FIRST, SECOND}
@@ -39,4 +40,8 @@ public interface Snapshot {
      * @return the number of units that will enter the board if reinforcement is called for the input {@code player}
      */
     int getSizeOfReinforcement(Player player);
+
+    NormalizedBoard getNormalizedBoard(Player player);
+
+    NormalizedBoard getCurrentBoard();
 }

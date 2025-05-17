@@ -1,6 +1,7 @@
 package it.unibz.inf.pp.clash.logic;
 
 import it.unibz.inf.pp.clash.model.snapshot.Board;
+import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
 import it.unibz.inf.pp.clash.view.DisplayManager;

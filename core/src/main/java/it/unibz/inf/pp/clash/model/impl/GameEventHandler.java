@@ -9,6 +9,9 @@ import it.unibz.inf.pp.clash.model.movehandlers.HumanMoveHandler;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
+
+import static it.unibz.inf.pp.clash.model.snapshot.Snapshot.Player;
+
 import it.unibz.inf.pp.clash.model.snapshot.impl.NormalizedBoardImpl;
 import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
@@ -29,16 +32,16 @@ import java.util.function.Function;
 
 
 public class GameEventHandler implements EventHandler {
+
     DisplayManager displayManager;
-    DummyEventHandler dummyEventHandler;
     Snapshot snapshot;
     MoveHandler moveHandler;
-    NormalizedBoard normalizedBoardP1, normalizedBoardP2;
 
+    // TODO: This probably should only listen to the events and delegate the logic to another class
     public GameEventHandler(DisplayManager displayManager) {
-        this.dummyEventHandler = new DummyEventHandler(displayManager);
         this.displayManager = displayManager;
         this.moveHandler = new HumanMoveHandler();
+
     }
 
 
@@ -57,9 +60,6 @@ public class GameEventHandler implements EventHandler {
                 3
         );
 
-        normalizedBoardP1 = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
-        normalizedBoardP2 = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.SECOND);
-
         @SuppressWarnings("unchecked")
         Function<MobileUnit.UnitColor, MobileUnit>[] unitsConstructors = new Function[]{
                 (Function<MobileUnit.UnitColor, MobileUnit>) Butterfly::new,
@@ -67,7 +67,6 @@ public class GameEventHandler implements EventHandler {
                 (Function<MobileUnit.UnitColor, MobileUnit>) Fairy::new
         };
         boardInitializer.apply(snapshot.getBoard(), 8, unitsConstructors);
-
         displayManager.drawSnapshot(snapshot, "New game started! " + firstHero + " vs " + secondHero);
     }
 
@@ -92,11 +91,11 @@ public class GameEventHandler implements EventHandler {
     private void initializeBoardRandom(Board board, int amount, Function<MobileUnit.UnitColor, MobileUnit>[] unitConstructors) {
         var random = new Random();
         for (int i = 0; i < amount; i++) {
-            int p1Index = findAvailableRandomSpot(normalizedBoardP1), p2Index = findAvailableRandomSpot(normalizedBoardP2);
+            int p1Index = findAvailableRandomSpot(snapshot.getNormalizedBoard(Player.FIRST)), p2Index = findAvailableRandomSpot(snapshot.getNormalizedBoard(Player.SECOND));
             UnitColor p1Color = UnitColor.values()[random.nextInt(3)], p2Color = UnitColor.values()[random.nextInt(3)];
             MobileUnit unit1 = unitConstructors[random.nextInt(unitConstructors.length)].apply(p1Color), unit2 = unitConstructors[random.nextInt(unitConstructors.length)].apply(p2Color);
-            normalizedBoardP1.addUnit(p1Index, unit1);
-            normalizedBoardP2.addUnit(p2Index, unit2);
+            snapshot.getNormalizedBoard(Player.FIRST).addUnit(p1Index, unit1);
+            snapshot.getNormalizedBoard(Player.SECOND).addUnit(p2Index, unit2);
 
         }
     }
@@ -133,7 +132,7 @@ public class GameEventHandler implements EventHandler {
     public void callReinforcement() {
         if (!(snapshot instanceof GameSnapshot)) return;
         GameSnapshot gs = (GameSnapshot) snapshot;
-        var currentBoard = getCurrentBoard();
+        var currentBoard = snapshot.getCurrentBoard();
 
         Snapshot.Player player = gs.getActivePlayer();
         int reinforcements = gs.getSizeOfReinforcement(player);
@@ -155,7 +154,6 @@ public class GameEventHandler implements EventHandler {
 
     @Override
     public void requestInformation(int rowIndex, int columnIndex) {
-        dummyEventHandler.requestInformation(rowIndex, columnIndex);
 
     }
 
@@ -165,21 +163,12 @@ public class GameEventHandler implements EventHandler {
         handleMove(rowIndex, columnIndex);
     }
 
-    private NormalizedBoard getCurrentBoard() {
-        NormalizedBoard board;
-        if (snapshot.getActivePlayer() == Snapshot.Player.FIRST) {
-            board = normalizedBoardP1;
-        } else {
-            board = normalizedBoardP2;
-        }
-        return board;
-    }
 
     // UPDATED move unit method (now you can overlay 2 same color units for an upgrade)
     private void handleMove(int rowIndex, int columnIndex) {
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
 
-        if (moveHandler.handleMove(rowIndex, columnIndex, getCurrentBoard())) {
+        if (moveHandler.handleMove(rowIndex, columnIndex, snapshot.getCurrentBoard())) {
             displayManager.drawSnapshot(snapshot, "Moved.");
             consumeAction((GameSnapshot) snapshot, displayManager);
         } else {
@@ -193,7 +182,7 @@ public class GameEventHandler implements EventHandler {
     private void handleDelete(int rowIndex, int columnIndex) {
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
 
-        var board = getCurrentBoard();
+        var board = snapshot.getCurrentBoard();
         var unit = board.getUnit(board.normalizeRowIndex(rowIndex), columnIndex);
 
         if (unit.isPresent()) {

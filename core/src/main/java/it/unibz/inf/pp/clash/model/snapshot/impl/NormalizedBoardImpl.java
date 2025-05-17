@@ -1,13 +1,17 @@
 package it.unibz.inf.pp.clash.model.snapshot.impl;
 
 import it.unibz.inf.pp.clash.model.exceptions.CoordinatesOutOfBoardException;
+import it.unibz.inf.pp.clash.model.formation.Formation;
+import it.unibz.inf.pp.clash.model.impl.GameEventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
+import it.unibz.inf.pp.clash.model.snapshot.Hero;
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
 
 import java.util.*;
+
 
 public class NormalizedBoardImpl implements NormalizedBoard {
 
@@ -16,6 +20,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     private Snapshot.Player player;
     // TODO: A dequeue might be more appropriate
     private Stack<Unit>[] normalizedBoard;
+    final private Set<Formation> formations = new HashSet<>();
 
     public static NormalizedBoard createNormalizedBoard(Board board, Snapshot.Player player) {
         var normalizedBoard = new NormalizedBoardImpl();
@@ -71,7 +76,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     @Override
     public void addUnit(int rowIndex, int columnIndex, Unit unit) {
         checkBoundaries(rowIndex, columnIndex);
-        checkForFormations();
+        applyFormations(checkForFormations());
         applyBoardState();
     }
 
@@ -89,7 +94,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
         board.removeUnit(getRealRowIndex(rowIndex), columnIndex);
         var stack = normalizedBoard[columnIndex];
         stack.remove(rowIndex);
-        checkForFormations();
+        applyFormations(checkForFormations());
         applyBoardState();
 
     }
@@ -152,22 +157,84 @@ public class NormalizedBoardImpl implements NormalizedBoard {
         }
     }
 
-    record FormationChange(int toRow, int fromRow, List<Unit> formation) {
+    private void applyFormations(List<Formation> newFormations) {
+        if (newFormations.isEmpty()) return;
+        for (var newFormation : newFormations) {
+            var formationsInColumn = formations.stream().filter(f -> f.columnIndex() == newFormation.columnIndex());
+            int maxRowIndex = formationsInColumn.map(formation -> formation.rowIndex() + 3).max(Integer::compareTo).orElse(0);
+            var stack = normalizedBoard[newFormation.columnIndex()];
+            stack.removeAll(newFormation.units());
+            stack.addAll(maxRowIndex, newFormation.units());
+            formations.add(new Formation(maxRowIndex, newFormation.columnIndex(), newFormation.units(), newFormation.isAttackingFormation()));
+        }
     }
 
-    private void checkForFormations() {
+    public int takeDamage(int damage, int column) {
+        var stack = normalizedBoard[column];
+        if (stack.isEmpty()) return damage;
+        var unit = stack.firstElement();
+        while (damage > 0 && !stack.isEmpty()) {
+            if (unit.getHealth() <= damage) {
+                damage -= unit.getHealth();
+                // TODO: Check if the unit was in a formation
+                stack.remove(unit);
+            } else {
+                unit.setHealth(unit.getHealth() - damage);
+                damage = 0;
+            }
+            if (!stack.isEmpty()) {
+                unit = stack.firstElement();
+            }
+        }
+        applyBoardState();
+        return damage;
 
-        for (var stack : normalizedBoard) {
+    }
+
+    public void updateFormations(Hero enemyHero, NormalizedBoard enemyBoard) {
+        var formationsToRemove = new ArrayList<Formation>();
+        for (var formation : formations) {
+            formation.update();
+
+            if (formation.shouldBeDestroyed()) {
+                formationsToRemove.add(formation);
+                if (formation.isAttackingFormation()) {
+                    var formationDamage = formation.getFormationAttackDamage();
+                    var heroDamage = enemyBoard.takeDamage(formationDamage, formation.columnIndex());
+                    enemyHero.setHealth(enemyHero.getHealth() - heroDamage);
+                    applyBoardState();
+                }
+                normalizedBoard[formation.columnIndex()].removeAll(formation.units());
+            }
+        }
+        if (formationsToRemove.isEmpty()) return;
+
+        formations.removeAll(formationsToRemove);
+        applyBoardState();
+    }
+
+    // Checks the board for conditions and appends them to the formations list
+    private List<Formation> checkForFormations() {
+
+        var newFormations = new ArrayList<Formation>();
+        for (int i = 0; i < normalizedBoard.length; i++) {
+            var stack = normalizedBoard[i];
             // Check for attacking formations
             if (stack.size() >= 3) {
-                var formationChanges = new ArrayList<FormationChange>();
                 var formationCount = 0;
                 Unit previousElement = null;
-                for (int i = 0; i < stack.size(); i++) {
+                for (int j = 0; j < stack.size(); j++) {
+
+                    int finalI = i;
+                    int finalJ = j;
+                    if (formations.stream().anyMatch(f -> f.columnIndex() == finalI && f.rowIndex() <= finalJ && finalJ < f.rowIndex() + 3)) {
+                        // This formation is already present. Skip it.
+                        continue;
+                    }
                     // If previous element is not null
                     if (previousElement != null) {
                         // Then check if the previous element is a mobile unit
-                        if (previousElement instanceof MobileUnit previousMobileUnit && stack.get(i) instanceof MobileUnit currentMobileUnit) {
+                        if (previousElement instanceof MobileUnit previousMobileUnit && stack.get(j) instanceof MobileUnit currentMobileUnit) {
                             // If it is a mobile unit, then check if it matches
                             if (previousMobileUnit.matches(currentMobileUnit)) {
                                 // If it matches, then we should add it to the formation count
@@ -175,7 +242,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
                             } else {
                                 // If it doesn't match, then we restart the formation count
                                 formationCount = 1;
-                                previousElement = stack.get(i);
+                                previousElement = stack.get(j);
                             }
                         } else {
                             // If it's not a mobile unit, then it's a wall and it doesn't count.
@@ -184,7 +251,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
                         }
                     } else {
                         // If it's null, we either just started or we have a wall
-                        previousElement = stack.get(i);
+                        previousElement = stack.get(j);
                         if (previousElement instanceof MobileUnit) {
                             formationCount = 1;
                         } else {
@@ -194,20 +261,15 @@ public class NormalizedBoardImpl implements NormalizedBoard {
 
                     if (formationCount == 3) {
                         // We have an attack formation vertically
-                        System.out.println("APPLYING BOARD STATE");
-                        var formationStart = i - 2;
-
-                        var formation = new ArrayList<Unit>(stack.subList(formationStart, i + 1));
-                        formationChanges.add(new FormationChange(0, formationStart, formation));
+                        var formationStart = j - 2;
+                        var formation = new ArrayList<>(stack.subList(formationStart, j + 1));
+                        newFormations.add(new Formation(j, i, formation, true));
                     }
                 }
-                for (var formationChange : formationChanges) {
-                    stack.removeAll(formationChange.formation());
-                    stack.addAll(formationChange.toRow, formationChange.formation());
-                }
             }
-
         }
+
+        return newFormations;
     }
 
     // Applies the normalized board state to the actual board. Making sure they're always in sync.
