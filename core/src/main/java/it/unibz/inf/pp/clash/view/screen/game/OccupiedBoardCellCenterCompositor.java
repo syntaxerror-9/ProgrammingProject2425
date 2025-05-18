@@ -7,6 +7,7 @@ import it.unibz.inf.pp.clash.controller.listeners.UnitRightClickListener;
 import it.unibz.inf.pp.clash.model.EventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
+import it.unibz.inf.pp.clash.model.snapshot.units.UpgradableUnit;
 import it.unibz.inf.pp.clash.view.screen.Compositor;
 import it.unibz.inf.pp.clash.view.screen.sync.AnimationCounter;
 import it.unibz.inf.pp.clash.view.singletons.ColorManager;
@@ -28,7 +29,8 @@ public class OccupiedBoardCellCenterCompositor extends Compositor {
             boolean health,
             boolean icon,
             boolean countdown
-    ) {}
+    ) {
+    }
 
     private static final ImageManager imageManager = ImageManager.instance();
 
@@ -85,8 +87,12 @@ public class OccupiedBoardCellCenterCompositor extends Compositor {
     }
 
     private void addStats(Unit unit, Highlights highlights, Table table) {
+        String healthString = String.valueOf(unit.getHealth());
+        if (unit instanceof MobileUnit) {
+            healthString += " (" + ((MobileUnit) unit).getLevel() + ")";
+        }
 
-        Label label = getLabel(unit.getHealth());
+        Label label = getLabel(healthString);
         if (highlights.health) {
             addFadeInAnimation(label);
         }
@@ -97,6 +103,10 @@ public class OccupiedBoardCellCenterCompositor extends Compositor {
 
     private Label getLabel(int value) {
         return getLabel(value, null);
+    }
+
+    private Label getLabel(String value) {
+        return FontManager.instance().getLabel(value, CELL, null);
     }
 
     private Label getLabel(int value, Color color) {

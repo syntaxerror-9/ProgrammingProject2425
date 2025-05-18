@@ -5,7 +5,7 @@ import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 public class Unicorn extends AbstractMobileUnit implements MobileUnit {
 
     public Unicorn(UnitColor color) {
-        super(2, color);
+        super(3, color, 4, 4);
     }
 
 

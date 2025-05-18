@@ -3,7 +3,7 @@ package it.unibz.inf.pp.clash.model.snapshot.units;
 /**
  * Units that can attack and/or can be moved (as opposed to walls for instance).
  */
-public interface MobileUnit extends Unit {
+public interface MobileUnit extends Unit, UpgradableUnit, AttackingUnit {
 
     enum UnitColor {ONE, TWO, THREE}
 
@@ -22,4 +22,9 @@ public interface MobileUnit extends Unit {
      * scheduled for this unit.
      */
     void setAttackCountdown(int attackCountDown);
+
+    /**
+     * @return whether this unit is a "match" for a possible formation with another unit
+     */
+    boolean matches(MobileUnit unit);
 }
