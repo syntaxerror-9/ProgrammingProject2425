@@ -1,18 +1,23 @@
 package it.unibz.inf.pp.clash.logic;
 
 import it.unibz.inf.pp.clash.model.snapshot.Board;
+import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
+import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
 import it.unibz.inf.pp.clash.view.DisplayManager;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
+
 import java.util.Random;
+
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Unicorn;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
+
 import java.util.*;
 import java.util.ArrayList;
 import java.util.List;
-import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 
+import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 
 
 public class GameSnapshotUtils {
@@ -50,7 +55,8 @@ public class GameSnapshotUtils {
         if (remaining <= 0) {
             Snapshot.Player previousPlayer = gs.getActivePlayer();
             gs.switchTurn();
-            handleTurnEndAbilities(gs, previousPlayer);
+            // TODO: When base project is completed
+//            handleTurnEndAbilities(gs, previousPlayer);
 
             displayManager.drawSnapshot(gs, "Turn ended. Now it's " + gs.getActivePlayer() + "'s turn.");
         } else {
@@ -60,12 +66,12 @@ public class GameSnapshotUtils {
 
 
     //checking who can interact with what (no cheating!!!)
-    public static boolean isTileOwnedByActivePlayer(Object snapshot, int rowIndex, DisplayManager displayManager) {
+    public static boolean isTileOwnedByActivePlayer(Snapshot snapshot, int rowIndex, DisplayManager displayManager) {
         if (!(snapshot instanceof GameSnapshot gs)) return false;
 
         boolean isValid = switch (gs.getActivePlayer()) {
-            case FIRST -> rowIndex >= 6;
-            case SECOND -> rowIndex <= 5;
+            case FIRST -> rowIndex >= (snapshot.getBoard().getMaxRowIndex() / 2) + 1;
+            case SECOND -> rowIndex <= (snapshot.getBoard().getMaxRowIndex() / 2);
         };
 
         if (!isValid) {
@@ -81,7 +87,6 @@ public class GameSnapshotUtils {
         triggerFairyAbilities(gs, playerEndingTurn);
         //put other abilities here
     }
-
 
 
     //fairy ability
@@ -139,15 +144,6 @@ public class GameSnapshotUtils {
             }
         }
     }
-
-
-
-
-
-
-
-
-
 
 
 }
