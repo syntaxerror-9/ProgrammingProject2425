@@ -31,20 +31,19 @@ public class EventHandlerTests {
     public void itShouldMoveAUnit() {
         var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
-            var normalizedP1Board = NormalizedBoardImpl.createNormalizedBoard(board, Snapshot.Player.FIRST);
+            var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
             normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));
         }, 3, 5);
 
         var snapshot = eventHandler.getSnapshot();
         Utils.PrintBoard(snapshot.getBoard());
-        var normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
+        var normalizedPlayerBoard = eventHandler.getSnapshot().getNormalizedBoard(Snapshot.Player.FIRST);
         assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
 
         // Move the unit from (3, 0) to (3, 1)
         eventHandler.selectTile(3, 0);
         eventHandler.selectTile(3, 1);
 
-        normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
         assertTrue(normalizedPlayerBoard.getUnit(0).isEmpty());
         assertTrue(normalizedPlayerBoard.getUnit(1).isPresent());
     }

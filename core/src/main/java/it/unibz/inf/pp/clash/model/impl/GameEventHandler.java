@@ -196,7 +196,6 @@ public class GameEventHandler implements EventHandler {
     }
 
 
-    //non serve???
     @Override
     public void deleteUnit(int rowIndex, int columnIndex) {
         handleDelete(rowIndex, columnIndex);

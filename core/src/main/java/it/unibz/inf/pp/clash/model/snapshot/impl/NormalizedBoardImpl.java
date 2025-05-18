@@ -2,7 +2,6 @@ package it.unibz.inf.pp.clash.model.snapshot.impl;
 
 import it.unibz.inf.pp.clash.model.exceptions.CoordinatesOutOfBoardException;
 import it.unibz.inf.pp.clash.model.formation.Formation;
-import it.unibz.inf.pp.clash.model.impl.GameEventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
 import it.unibz.inf.pp.clash.model.snapshot.Hero;
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
@@ -14,7 +13,6 @@ import java.util.*;
 
 
 public class NormalizedBoardImpl implements NormalizedBoard {
-
 
     private Board board;
     private Snapshot.Player player;
