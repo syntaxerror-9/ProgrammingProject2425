@@ -18,6 +18,7 @@ public class DesktopLauncher {
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setForegroundFPS(60);
         config.setTitle("Clash");
+        config.setWindowedMode(1600, 1200);
 
         DisplayManager displayManager = new DisplayManagerImpl(false);
 
