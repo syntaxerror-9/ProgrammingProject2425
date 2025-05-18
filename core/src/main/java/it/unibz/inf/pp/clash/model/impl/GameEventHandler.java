@@ -119,7 +119,11 @@ public class GameEventHandler implements EventHandler {
             return;
         }
 
+
+        Snapshot.Player previousPlayer = gs.getActivePlayer();
         gs.switchTurn();
+        // TODO: When base project is completed
+//        handleTurnEndAbilities(gs, previousPlayer);
 
         System.out.println("Turn skipped. The active player is now: " + gs.getActivePlayer());
         System.out.println("Remaining actions: " + gs.getNumberOfRemainingActions());
@@ -154,6 +158,7 @@ public class GameEventHandler implements EventHandler {
 
     @Override
     public void requestInformation(int rowIndex, int columnIndex) {
+        // TODO: Arshad implement this method
 
     }
 

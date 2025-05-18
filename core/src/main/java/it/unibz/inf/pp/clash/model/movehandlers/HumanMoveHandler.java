@@ -68,7 +68,7 @@ public class HumanMoveHandler implements MoveHandler {
         if (targetUnitMaybe.isPresent() && targetUnitMaybe.get() instanceof MobileUnit targetUnit) {
             if (selectedUnit == targetUnit) return false;
             // The unit is a mobile unit. Now we need to check they match the type and color.
-            return targetUnit.getClass() == selectedUnit.getClass() && targetUnit.getColor() == selectedUnit.getColor();
+            return targetUnit.matches(selectedUnit);
         }
         return false;
 
