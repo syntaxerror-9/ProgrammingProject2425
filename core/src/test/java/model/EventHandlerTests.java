@@ -19,17 +19,18 @@ import static org.junit.jupiter.api.Assertions.*;
 public class EventHandlerTests {
 
     private DisplayManager displayManager;
+    private GameEventHandler eventHandler;
 
     @BeforeEach
     public void setUp() {
         displayManager = Mockito.mock(DisplayManager.class);
         Input mockInput = Mockito.mock(Input.class);
         Gdx.input = mockInput;
+        eventHandler = new GameEventHandler(displayManager);
     }
 
     @Test
     public void itShouldMoveAUnit() {
-        var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
             var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
             normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));
@@ -50,7 +51,6 @@ public class EventHandlerTests {
 
     @Test
     public void itShouldMoveAUnitToTheSameColumn() {
-        var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
             var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
             normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));
@@ -79,7 +79,6 @@ public class EventHandlerTests {
     @Test
     public void itShouldMergeWithAUnit() {
 
-        var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
             var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
             normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));

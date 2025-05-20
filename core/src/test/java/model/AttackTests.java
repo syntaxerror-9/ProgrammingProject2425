@@ -20,17 +20,18 @@ public class AttackTests {
 
 
     private DisplayManager displayManager;
+    private GameEventHandler eventHandler;
 
     @BeforeEach
     public void setUp() {
         displayManager = Mockito.mock(DisplayManager.class);
         Input mockInput = Mockito.mock(Input.class);
         Gdx.input = mockInput;
+        eventHandler = new GameEventHandler(displayManager);
     }
 
     @Test
     public void itShouldCreateAFormationAndAttack() {
-        var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
             var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
             normalizedP1Board.addUnit(0, new Butterfly(MobileUnit.UnitColor.ONE));
@@ -52,7 +53,6 @@ public class AttackTests {
 
     @Test
     public void itShouldDestroyAnEnemyFormation() {
-        var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
             var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
             normalizedP1Board.addUnit(0, new Fairy(MobileUnit.UnitColor.ONE));
@@ -84,5 +84,37 @@ public class AttackTests {
         assertTrue(enemyHeroBoard.getUnit(0).isEmpty());
         // Check that the butterfly attack formation tanked the correct damage
         assertEquals(enemyHero.getHealth(), initialHealth + butterfly.getAttackDamage() * 3 - fairy.getAttackDamage() * 3);
+    }
+
+    @Test
+    public void itShouldLowerTheFormationAttackIfAttacked() {
+
+        eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
+            var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
+            normalizedP1Board.addUnit(0, new Fairy(MobileUnit.UnitColor.ONE));
+            normalizedP1Board.addUnit(0, new Fairy(MobileUnit.UnitColor.ONE));
+            normalizedP1Board.addUnit(0, new Fairy(MobileUnit.UnitColor.ONE));
+
+            var normalizedP2Board = eventHandler.getSnapshot().getNormalizedBoard(Snapshot.Player.SECOND);
+            // NOTE: the butterfly should attack faster than the fairy
+            normalizedP2Board.addUnit(0, new Butterfly(MobileUnit.UnitColor.TWO));
+            normalizedP2Board.addUnit(0, new Butterfly(MobileUnit.UnitColor.TWO));
+            normalizedP2Board.addUnit(0, new Butterfly(MobileUnit.UnitColor.TWO));
+        }, 3, 5);
+
+        var fairy = new Fairy(MobileUnit.UnitColor.ONE);
+        var butterfly = new Butterfly(MobileUnit.UnitColor.TWO);
+
+        var enemyHero = eventHandler.getSnapshot().getHero(Snapshot.Player.SECOND);
+        var initialHealth = enemyHero.getHealth();
+
+        for (int i = 0; i < fairy.getInitialAttackCountdown(); i++) {
+            eventHandler.skipTurn();
+            eventHandler.skipTurn();
+        }
+
+        assertEquals(enemyHero.getHealth(), initialHealth - (fairy.getAttackDamage() * 3 - butterfly.getAttackDamage() * 3));
+
+
     }
 }
