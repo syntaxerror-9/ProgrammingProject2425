@@ -17,7 +17,6 @@ public final class Formation {
     public boolean shouldBeDestroyed() {
         return units.stream().allMatch(unit -> {
             if (unit instanceof MobileUnit mobileUnit) return mobileUnit.getAttackCountdown() <= 0;
-            // TODO CHECK FOR WALLS
             return false;
         });
     }

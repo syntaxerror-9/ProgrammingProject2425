@@ -90,7 +90,6 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     @Override
     public void removeUnit(int rowIndex, int columnIndex) {
         checkBoundaries(rowIndex, columnIndex);
-        board.removeUnit(getRealRowIndex(rowIndex), columnIndex);
         var stack = normalizedBoard[columnIndex];
         stack.remove(rowIndex);
         formations.forEach(formation -> {
