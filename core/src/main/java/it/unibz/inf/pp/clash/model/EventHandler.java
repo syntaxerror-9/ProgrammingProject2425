@@ -61,5 +61,4 @@ public interface EventHandler {
      * - etc.
      */
     void deleteUnit(int rowIndex, int columnIndex);
-
 }

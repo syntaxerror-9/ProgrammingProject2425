@@ -88,6 +88,7 @@ public class DummyEventHandler implements EventHandler {
                         "Bob"
                 ), "This is a dummy game snapshot, for demonstration purposes."
         );
+        
     }
 
     @Override
