@@ -70,15 +70,25 @@ public class DummyEventHandler implements EventHandler {
         );
     }
 
-    @Override
-    public void callReinforcement() {
+   @Override
+public void callReinforcement() {
+    System.out.println("Calling reinforcements. Reinforcement count: " + reinforcementCount);
+    // simulate consuming one reinforcement unit
+    if (reinforcementCount > 0) {
+        reinforcementCount--;
         displayManager.drawSnapshot(
-                new AnotherDummySnapshot(
-                        "Alice",
-                        "Bob"
-                ), "This is another dummy game snapshot, to test animations."
+            new AnotherDummySnapshot("Alice", "Bob"),
+            "Reinforcement deployed! Remaining: " + reinforcementCount
         );
+    } else {
+        try {
+            displayManager.updateMessage("No reinforcements available!");
+        } catch (NoGameOnScreenException e) {
+            throw new RuntimeException(e);
+        }
     }
+}
+
 
     @Override
     public void skipTurn() {
@@ -88,11 +98,19 @@ public class DummyEventHandler implements EventHandler {
                         "Bob"
                 ), "This is a dummy game snapshot, for demonstration purposes."
         );
-        
+
     }
 
     @Override
     public void exitGame() {
         displayManager.drawHomeScreen();
     }
+    private int reinforcementCount = 0;
+
+@Override
+public void onUnitDeath(String unitType) {
+    reinforcementCount++;
+    System.out.println("Unit of type " + unitType + " died. Reinforcement count: " + reinforcementCount);
+}
+
 }

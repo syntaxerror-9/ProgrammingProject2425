@@ -1,5 +1,7 @@
 package it.unibz.inf.pp.clash.model;
 
+import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
+
 public interface EventHandler {
 
     /**
@@ -61,4 +63,6 @@ public interface EventHandler {
      * - etc.
      */
     void deleteUnit(int rowIndex, int columnIndex);
+   void onUnitDeath(String unitType);
+
 }
