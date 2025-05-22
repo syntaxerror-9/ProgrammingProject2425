@@ -10,6 +10,7 @@ import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class NormalizedBoardImpl implements NormalizedBoard {
@@ -89,9 +90,14 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     @Override
     public void removeUnit(int rowIndex, int columnIndex) {
         checkBoundaries(rowIndex, columnIndex);
-        board.removeUnit(getRealRowIndex(rowIndex), columnIndex);
         var stack = normalizedBoard[columnIndex];
         stack.remove(rowIndex);
+        formations.forEach(formation -> {
+            // Note: this should really only happen if the unit was a wall.
+            if (formation.getRowIndex() > rowIndex) {
+                formation.setRowIndex(formation.getRowIndex() - 1);
+            }
+        });
         applyFormations(checkForFormations());
         applyBoardState();
 
@@ -155,27 +161,51 @@ public class NormalizedBoardImpl implements NormalizedBoard {
         }
     }
 
+    private void removeFormation(Formation formation) {
+        formations.remove(formation);
+        normalizedBoard[formation.getColumnIndex()].removeAll(formation.getUnits());
+    }
+
     private void applyFormations(List<Formation> newFormations) {
         if (newFormations.isEmpty()) return;
         for (var newFormation : newFormations) {
-            var formationsInColumn = formations.stream().filter(f -> f.columnIndex() == newFormation.columnIndex());
-            int maxRowIndex = formationsInColumn.map(formation -> formation.rowIndex() + 3).max(Integer::compareTo).orElse(0);
-            var stack = normalizedBoard[newFormation.columnIndex()];
-            stack.removeAll(newFormation.units());
-            stack.addAll(maxRowIndex, newFormation.units());
-            formations.add(new Formation(maxRowIndex, newFormation.columnIndex(), newFormation.units(), newFormation.isAttackingFormation()));
+            var formationsInColumn = formations.stream().filter(f -> f.getColumnIndex() == newFormation.getColumnIndex());
+            int maxRowIndex = formationsInColumn.map(formation -> formation.getRowIndex() + 3).max(Integer::compareTo).orElse(0);
+            var stack = normalizedBoard[newFormation.getColumnIndex()];
+            stack.removeAll(newFormation.getUnits());
+            stack.addAll(maxRowIndex, newFormation.getUnits());
+            formations.add(new Formation(maxRowIndex, newFormation.getColumnIndex(), newFormation.getUnits(), newFormation.isAttackingFormation()));
         }
     }
 
     public int takeDamage(int damage, int column) {
         var stack = normalizedBoard[column];
         if (stack.isEmpty()) return damage;
+        var formationsInStack = formations.stream().filter(f -> f.getColumnIndex() == column).toList();
         var unit = stack.firstElement();
+
+
         while (damage > 0 && !stack.isEmpty()) {
-            if (unit.getHealth() <= damage) {
+            var firstRowFormationMaybe = formationsInStack.stream().filter(f -> f.getRowIndex() == 0).findFirst();
+
+            if (firstRowFormationMaybe.isPresent()) {
+                var firstRowFormation = firstRowFormationMaybe.get();
+                // NOTE: in Might&Magic, when a formation is formed, its attack behaves like its health.
+                // So when a formation is attacked, its attack will deal less damage.
+                var formationDamage = firstRowFormation.getFormationAttackDamage();
+                if (formationDamage <= damage) {
+                    damage -= formationDamage;
+                    removeFormation(firstRowFormation);
+                } else {
+                    firstRowFormation.setFormationAttackDamage(formationDamage - damage);
+                    damage = 0;
+                }
+
+
+            } else if (unit.getHealth() <= damage) {
                 damage -= unit.getHealth();
                 // TODO: Check if the unit was in a formation
-                stack.remove(unit);
+                removeUnit(0, column);
             } else {
                 unit.setHealth(unit.getHealth() - damage);
                 damage = 0;
@@ -198,16 +228,15 @@ public class NormalizedBoardImpl implements NormalizedBoard {
                 formationsToRemove.add(formation);
                 if (formation.isAttackingFormation()) {
                     var formationDamage = formation.getFormationAttackDamage();
-                    var heroDamage = enemyBoard.takeDamage(formationDamage, formation.columnIndex());
+                    var heroDamage = enemyBoard.takeDamage(formationDamage, formation.getColumnIndex());
                     enemyHero.setHealth(enemyHero.getHealth() - heroDamage);
                     applyBoardState();
                 }
-                normalizedBoard[formation.columnIndex()].removeAll(formation.units());
             }
         }
         if (formationsToRemove.isEmpty()) return;
 
-        formations.removeAll(formationsToRemove);
+        formationsToRemove.forEach(this::removeFormation);
         applyBoardState();
     }
 
@@ -225,7 +254,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
 
                     int finalI = i;
                     int finalJ = j;
-                    if (formations.stream().anyMatch(f -> f.columnIndex() == finalI && f.rowIndex() <= finalJ && finalJ < f.rowIndex() + 3)) {
+                    if (formations.stream().anyMatch(f -> f.getColumnIndex() == finalI && f.getRowIndex() <= finalJ && finalJ < f.getRowIndex() + 3)) {
                         // This formation is already present. Skip it.
                         continue;
                     }

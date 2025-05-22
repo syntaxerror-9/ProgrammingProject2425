@@ -19,17 +19,18 @@ import static org.junit.jupiter.api.Assertions.*;
 public class EventHandlerTests {
 
     private DisplayManager displayManager;
+    private GameEventHandler eventHandler;
 
     @BeforeEach
     public void setUp() {
         displayManager = Mockito.mock(DisplayManager.class);
         Input mockInput = Mockito.mock(Input.class);
         Gdx.input = mockInput;
+        eventHandler = new GameEventHandler(displayManager);
     }
 
     @Test
     public void itShouldMoveAUnit() {
-        var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
             var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
             normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));
@@ -50,14 +51,13 @@ public class EventHandlerTests {
 
     @Test
     public void itShouldMoveAUnitToTheSameColumn() {
-        var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
-            var normalizedP1Board = NormalizedBoardImpl.createNormalizedBoard(board, Snapshot.Player.FIRST);
+            var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
             normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));
         }, 3, 5);
 
         var snapshot = eventHandler.getSnapshot();
-        var normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
+        var normalizedPlayerBoard = snapshot.getCurrentBoard();
         assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
 
         Utils.PrintBoard(snapshot.getBoard());
@@ -66,38 +66,33 @@ public class EventHandlerTests {
         eventHandler.selectTile(3, 0);
 
         Utils.PrintBoard(snapshot.getBoard());
-        normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
         assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
 
         eventHandler.selectTile(3, 0);
         eventHandler.selectTile(4, 0);
-
-        normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
         assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
-
         eventHandler.selectTile(3, 0);
         eventHandler.selectTile(5, 0);
-
-        normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
         assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
     }
 
     @Test
     public void itShouldMergeWithAUnit() {
 
-        var eventHandler = new GameEventHandler(displayManager);
         eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
-            var normalizedP1Board = NormalizedBoardImpl.createNormalizedBoard(board, Snapshot.Player.FIRST);
+            var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
             normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));
             normalizedP1Board.addUnit(1, new Butterfly(UnitColor.ONE));
         }, 3, 5);
 
-        var snapshot = eventHandler.getSnapshot();
-        var normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
-        assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
-        Utils.PrintBoard(snapshot.getBoard());
 
-        normalizedPlayerBoard = NormalizedBoardImpl.createNormalizedBoard(snapshot.getBoard(), Snapshot.Player.FIRST);
+        var snapshot = eventHandler.getSnapshot();
+
+        var normalizedPlayerBoard = eventHandler.getSnapshot().getCurrentBoard();
+        assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
+        eventHandler.selectTile(3, 0);
+        eventHandler.selectTile(3, 1);
+        Utils.PrintBoard(snapshot.getBoard());
         assertTrue(normalizedPlayerBoard.getUnit(0).isEmpty());
         assertEquals(2, ((MobileUnit) normalizedPlayerBoard.getUnit(1).get()).getLevel());
 

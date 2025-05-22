@@ -184,6 +184,8 @@ public class GameEventHandler implements EventHandler {
 
 
     // delete unit method
+    // TODO: Check if unit is a attack formation. If it is, it cannot be destroyed.
+    // Walls can be deleted.
     private void handleDelete(int rowIndex, int columnIndex) {
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
 
