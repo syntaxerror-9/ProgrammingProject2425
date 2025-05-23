@@ -174,11 +174,15 @@ public class GameEventHandler implements EventHandler {
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
 
         if (moveHandler.handleMove(rowIndex, columnIndex, snapshot.getCurrentBoard())) {
+
             displayManager.drawSnapshot(snapshot, "Moved.");
             consumeAction((GameSnapshot) snapshot, displayManager);
+
+
         } else {
             displayManager.drawSnapshot(snapshot, "Not moved");
         }
+
 
     }
 
