@@ -75,6 +75,8 @@ public class NormalizedBoardImpl implements NormalizedBoard {
 
     @Override
     public void addUnit(int rowIndex, int columnIndex, Unit unit) {
+        var stack = normalizedBoard[columnIndex];
+        stack.add(rowIndex, unit);
         checkBoundaries(rowIndex, columnIndex);
         applyFormations(checkForFormations());
         checkAndApplyDefensiveFormation(player);
@@ -85,7 +87,6 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     public void addUnit(int columnIndex, Unit unit) {
         var stack = normalizedBoard[columnIndex];
         var stackTop = stack.size() - 1;
-        stack.push(unit);
         addUnit(stackTop + 1, columnIndex, unit);
     }
 
@@ -174,10 +175,10 @@ public class NormalizedBoardImpl implements NormalizedBoard {
         if (newFormations.isEmpty()) return;
         for (var newFormation : newFormations) {
 
-            var formationsInColumn = formations.stream().filter(f -> f.columnIndex() == newFormation.columnIndex());
-            int maxRowIndex = formationsInColumn.map(formation -> formation.rowIndex() + 3).max(Integer::compareTo).orElse(0);
-            var stack = normalizedBoard[newFormation.columnIndex()];
-            stack.removeAll(newFormation.units());
+            var formationsInColumn = formations.stream().filter(f -> f.getColumnIndex() == newFormation.getColumnIndex());
+            int maxRowIndex = formationsInColumn.map(formation -> formation.getRowIndex() + 3).max(Integer::compareTo).orElse(0);
+            var stack = normalizedBoard[newFormation.getColumnIndex()];
+            stack.removeAll(newFormation.getUnits());
 
             // here: attacking formations will not replace walls anymore
             int insertIndex = 0;
@@ -215,18 +216,18 @@ public class NormalizedBoardImpl implements NormalizedBoard {
             }
 
             // putting the formation
-            for (int i = 0; i < newFormation.units().size(); i++) {
+            for (int i = 0; i < newFormation.getUnits().size(); i++) {
                 int idx = insertIndex + i;
                 if (idx < stack.size()) {
-                    stack.set(idx, newFormation.units().get(i));
+                    stack.set(idx, newFormation.getUnits().get(i));
                 } else {
-                    stack.add(newFormation.units().get(i));
+                    stack.add(newFormation.getUnits().get(i));
                 }
             }
 
             // only adding if not on a wall
             for (int i = 0; i < toShift.size(); i++) {
-                int index = insertIndex + newFormation.units().size() + i;
+                int index = insertIndex + newFormation.getUnits().size() + i;
 
                 if (index >= stack.size()) {
                     stack.add(toShift.get(i));
@@ -237,12 +238,12 @@ public class NormalizedBoardImpl implements NormalizedBoard {
                         stack.set(index, toShift.get(i));
                     } else {
 
-                        System.out.println("Not moving walls. " + newFormation.columnIndex());
+                        System.out.println("Not moving walls. " + newFormation.getColumnIndex());
                     }
                 }
             }
 
-            formations.add(new Formation(maxRowIndex, newFormation.columnIndex(), newFormation.units(), newFormation.isAttackingFormation()));
+            formations.add(new Formation(maxRowIndex, newFormation.getColumnIndex(), newFormation.getUnits(), newFormation.isAttackingFormation()));
         }
     }
 
@@ -294,7 +295,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
                 formationsToRemove.add(formation);
                 if (formation.isAttackingFormation()) {
                     var formationDamage = formation.getFormationAttackDamage();
-                    var heroDamage = enemyBoard.takeDamage(formationDamage, formation.columnIndex());
+                    var heroDamage = enemyBoard.takeDamage(formationDamage, formation.getColumnIndex());
                     enemyHero.setHealth(enemyHero.getHealth() - heroDamage);
                     applyBoardState();
                 }
@@ -324,7 +325,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
                     int finalJ = j;
 
                     // this formation is already present. Skip it.
-                    if (formations.stream().anyMatch(f -> f.columnIndex() == finalI && f.rowIndex() <= finalJ && finalJ < f.rowIndex() + 3)) {
+                    if (formations.stream().anyMatch(f -> f.getColumnIndex() == finalI && f.getRowIndex() <= finalJ && finalJ < f.getRowIndex() + 3)) {
                         continue;
                     }
 
