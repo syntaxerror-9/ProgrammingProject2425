@@ -14,6 +14,11 @@ public class HeroImpl implements Hero {
     }
 
     @Override
+    public boolean isBot() {
+        return name.equals("Bot");
+    }
+
+    @Override
     public int getHealth() {
         return health;
     }
