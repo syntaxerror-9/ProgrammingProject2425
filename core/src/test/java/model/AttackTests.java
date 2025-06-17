@@ -27,7 +27,12 @@ public class AttackTests {
         displayManager = Mockito.mock(DisplayManager.class);
         Input mockInput = Mockito.mock(Input.class);
         Gdx.input = mockInput;
-        eventHandler = new GameEventHandler(displayManager);
+        eventHandler = GameEventHandler.getInstance();
+        if (eventHandler == null) {
+            eventHandler = new GameEventHandler(displayManager);
+        }
+
+
     }
 
     @Test
