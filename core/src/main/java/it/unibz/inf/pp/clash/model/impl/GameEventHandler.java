@@ -2,6 +2,7 @@ package it.unibz.inf.pp.clash.model.impl;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import it.unibz.inf.pp.clash.logic.GameSnapshotUtils;
 import it.unibz.inf.pp.clash.model.BoardInitializer;
 import it.unibz.inf.pp.clash.model.EventHandler;
 import it.unibz.inf.pp.clash.model.MoveHandler;
@@ -35,8 +36,7 @@ public class GameEventHandler implements EventHandler {
 
     DisplayManager displayManager;
     Snapshot snapshot;
-    MoveHandler p1MoveHandler;
-    MoveHandler p2MoveHandler;
+    MoveHandler moveHandler;
 
     static private GameEventHandler instance;
 
@@ -45,10 +45,10 @@ public class GameEventHandler implements EventHandler {
         if (instance != null) throw new RuntimeException("GameEventHandler should be a singleton");
         instance = this;
         this.displayManager = displayManager;
+        moveHandler = new HumanMoveHandler();
     }
 
 
-    }
     public static GameEventHandler getInstance() {
         return instance;
     }
@@ -182,7 +182,7 @@ public class GameEventHandler implements EventHandler {
     private void handleMove(int rowIndex, int columnIndex) {
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
 
-        if (p1MoveHandler.handleMove(rowIndex, columnIndex, snapshot.getCurrentBoard())) {
+        if (moveHandler.handleMove(rowIndex, columnIndex, snapshot.getCurrentBoard())) {
             displayManager.drawSnapshot(snapshot, "Moved.");
             consumeAction((GameSnapshot) snapshot, displayManager);
         } else {
