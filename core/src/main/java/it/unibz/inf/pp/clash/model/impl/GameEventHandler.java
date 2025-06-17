@@ -1,19 +1,17 @@
 package it.unibz.inf.pp.clash.model.impl;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
+import it.unibz.inf.pp.clash.logic.GameSnapshotUtils;
 import it.unibz.inf.pp.clash.model.BoardInitializer;
 import it.unibz.inf.pp.clash.model.EventHandler;
 import it.unibz.inf.pp.clash.model.MoveHandler;
 import it.unibz.inf.pp.clash.model.movehandlers.HumanMoveHandler;
+import it.unibz.inf.pp.clash.model.movehandlers.RandomRobotMoveHandler;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 
 import static it.unibz.inf.pp.clash.model.snapshot.Snapshot.Player;
 
-import it.unibz.inf.pp.clash.model.snapshot.impl.NormalizedBoardImpl;
-import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
 import it.unibz.inf.pp.clash.view.DisplayManager;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
@@ -35,13 +33,22 @@ public class GameEventHandler implements EventHandler {
 
     DisplayManager displayManager;
     Snapshot snapshot;
-    MoveHandler moveHandler;
+    MoveHandler p1MoveHandler;
+    MoveHandler p2MoveHandler;
+
+    static private GameEventHandler instance;
 
     // TODO: This probably should only listen to the events and delegate the logic to another class
     public GameEventHandler(DisplayManager displayManager) {
+        if (instance != null) throw new RuntimeException("GameEventHandler should be a singleton");
+        instance = this;
         this.displayManager = displayManager;
-        this.moveHandler = new HumanMoveHandler();
+        this.p1MoveHandler = new HumanMoveHandler();
+        this.p2MoveHandler = new RandomRobotMoveHandler();
+    }
 
+    public static GameEventHandler getInstance() {
+        return instance;
     }
 
 
@@ -121,7 +128,7 @@ public class GameEventHandler implements EventHandler {
 
 
         Snapshot.Player previousPlayer = gs.getActivePlayer();
-        gs.switchTurn();
+        GameSnapshotUtils.switchTurn((GameSnapshot) snapshot, displayManager);
         // TODO: When base project is completed
 //        handleTurnEndAbilities(gs, previousPlayer);
 
@@ -173,7 +180,7 @@ public class GameEventHandler implements EventHandler {
     private void handleMove(int rowIndex, int columnIndex) {
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
 
-        if (moveHandler.handleMove(rowIndex, columnIndex, snapshot.getCurrentBoard())) {
+        if (p1MoveHandler.handleMove(rowIndex, columnIndex, snapshot.getCurrentBoard())) {
             displayManager.drawSnapshot(snapshot, "Moved.");
             consumeAction((GameSnapshot) snapshot, displayManager);
         } else {

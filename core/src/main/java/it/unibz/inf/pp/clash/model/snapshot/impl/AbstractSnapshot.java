@@ -76,4 +76,11 @@ public abstract class AbstractSnapshot implements Snapshot {
         return actionsRemaining;
     }
 
+
+    @Override
+    public void setActivePlayer(Player player) {
+        activeplayer = player;
+    }
+
+
 }

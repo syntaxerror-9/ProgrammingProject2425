@@ -125,7 +125,8 @@ public class NormalizedBoardImpl implements NormalizedBoard {
         }
     }
 
-    private int getRealRowIndex(int normalizedRowIndex) {
+    @Override
+    public int getRealRowIndex(int normalizedRowIndex) {
         var middle = (board.getMaxRowIndex() + 1) / 2;
         if (player == Snapshot.Player.FIRST) {
             return normalizedRowIndex + middle;
