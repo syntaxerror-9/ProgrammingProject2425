@@ -1,7 +1,7 @@
 package it.unibz.inf.pp.clash.logic;
 
+import it.unibz.inf.pp.clash.model.BotPlayer;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
-import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
 import it.unibz.inf.pp.clash.view.DisplayManager;
@@ -10,14 +10,11 @@ import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
 
 import java.util.Random;
 
-import it.unibz.inf.pp.clash.model.snapshot.units.impl.Unicorn;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
 
 import java.util.*;
 import java.util.ArrayList;
 import java.util.List;
-
-import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 
 
 public class GameSnapshotUtils {
@@ -48,17 +45,39 @@ public class GameSnapshotUtils {
     }
 
 
+    public static void switchTurn(GameSnapshot gs, DisplayManager displayManager) {
+        var previousActivePlayer = gs.getActivePlayer();
+        gs.setActivePlayer((previousActivePlayer == Snapshot.Player.FIRST) ? Snapshot.Player.SECOND : Snapshot.Player.FIRST);
+        gs.setActionsRemaining(3);
+        gs.clearOngoingMove();
+
+        var activePlayer = gs.getActivePlayer();
+        var activePlayerBoard = gs.getNormalizedBoard(activePlayer);
+        activePlayerBoard.updateFormations(gs.getHero(previousActivePlayer), gs.getNormalizedBoard(previousActivePlayer));
+
+        var activeHero = gs.getHero(activePlayer);
+        if (activeHero.isBot()) {
+            System.out.println("it is bot and playing its move");
+            for (int i = 0; i < 3; i++) {
+                BotPlayer.PlayMove(gs);
+            }
+        }
+    }
+
     //consuming actions
     public static void consumeAction(GameSnapshot gs, DisplayManager displayManager) {
         gs.decrementActions();
         int remaining = gs.getNumberOfRemainingActions();
+
         if (remaining <= 0) {
             Snapshot.Player previousPlayer = gs.getActivePlayer();
-            gs.switchTurn();
+            switchTurn(gs, displayManager);
             // TODO: When base project is completed
 //            handleTurnEndAbilities(gs, previousPlayer);
 
             displayManager.drawSnapshot(gs, "Turn ended. Now it's " + gs.getActivePlayer() + "'s turn.");
+            var activeHero = gs.getHero(gs.getActivePlayer());
+
         } else {
             displayManager.drawSnapshot(gs, "Action performed. Remaining: " + remaining);
         }

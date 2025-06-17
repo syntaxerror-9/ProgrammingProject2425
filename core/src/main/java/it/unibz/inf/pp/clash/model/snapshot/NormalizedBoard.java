@@ -12,6 +12,8 @@ import java.util.Stack;
 public interface NormalizedBoard extends Board {
     int normalizeRowIndex(int rowIndex);
 
+    int getRealRowIndex(int normalizedRowIndex);
+
     Stack<Unit>[] getNormalizedBoard();
 
     void removeUnit(int columnIndex);

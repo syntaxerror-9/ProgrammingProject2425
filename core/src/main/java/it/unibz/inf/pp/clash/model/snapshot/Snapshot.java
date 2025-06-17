@@ -44,4 +44,7 @@ public interface Snapshot {
     NormalizedBoard getNormalizedBoard(Player player);
 
     NormalizedBoard getCurrentBoard();
+
+    void setActivePlayer(Player player);
+
 }
