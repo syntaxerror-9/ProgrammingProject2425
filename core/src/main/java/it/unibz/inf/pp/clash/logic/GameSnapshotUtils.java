@@ -45,6 +45,59 @@ public class GameSnapshotUtils {
     }
 
 
+    public static void doBotTurn(GameSnapshot gs) {
+
+        System.out.println("it is bot and playing its move");
+
+        // Create a new thread for each move. This will make it so that the moves are not instant and the other
+        // player can see what each move the bot has done
+
+        var firstMoveSemaphore = new Object();
+        var secondMoveSemaphore = new Object();
+        var firstMove = new Thread(() -> {
+            try {
+                BotPlayer.PlayMove(gs);
+                Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } finally {
+                synchronized (firstMoveSemaphore) {
+                    firstMoveSemaphore.notify();
+                }
+            }
+        });
+        var secondMove = new Thread(() -> {
+
+            try {
+                synchronized (firstMoveSemaphore) {
+                    firstMoveSemaphore.wait();
+                }
+                BotPlayer.PlayMove(gs);
+                Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } finally {
+                synchronized (secondMoveSemaphore) {
+                    secondMoveSemaphore.notify();
+                }
+            }
+        });
+        var thirdMove = new Thread(() -> {
+            try {
+                synchronized (secondMoveSemaphore) {
+                    secondMoveSemaphore.wait();
+                }
+                BotPlayer.PlayMove(gs);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        firstMove.start();
+        secondMove.start();
+        thirdMove.start();
+    }
+
     public static void switchTurn(GameSnapshot gs, DisplayManager displayManager) {
         var previousActivePlayer = gs.getActivePlayer();
         gs.setActivePlayer((previousActivePlayer == Snapshot.Player.FIRST) ? Snapshot.Player.SECOND : Snapshot.Player.FIRST);
@@ -57,55 +110,7 @@ public class GameSnapshotUtils {
 
         var activeHero = gs.getHero(activePlayer);
         if (activeHero.isBot()) {
-            System.out.println("it is bot and playing its move");
-
-            // Create a new thread for each move. This will make it so that the moves are not instant and the other
-            // player can see what each move the bot has done
-
-            var firstMoveSemaphore = new Object();
-            var secondMoveSemaphore = new Object();
-            var firstMove = new Thread(() -> {
-                try {
-                    BotPlayer.PlayMove(gs);
-                    Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    synchronized (firstMoveSemaphore) {
-                        firstMoveSemaphore.notify();
-                    }
-                }
-            });
-            var secondMove = new Thread(() -> {
-
-                try {
-                    synchronized (firstMoveSemaphore) {
-                        firstMoveSemaphore.wait();
-                    }
-                    BotPlayer.PlayMove(gs);
-                    Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    synchronized (secondMoveSemaphore) {
-                        secondMoveSemaphore.notify();
-                    }
-                }
-            });
-            var thirdMove = new Thread(() -> {
-                try {
-                    synchronized (secondMoveSemaphore) {
-                        secondMoveSemaphore.wait();
-                    }
-                    BotPlayer.PlayMove(gs);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-
-            firstMove.start();
-            secondMove.start();
-            thirdMove.start();
+            doBotTurn(gs);
         }
     }
 

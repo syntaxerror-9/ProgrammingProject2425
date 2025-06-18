@@ -73,4 +73,8 @@ public class HumanMoveHandler implements MoveHandler {
         return false;
 
     }
+
+    public void resetPreviousColumnIndex() {
+        previousColumnIndex = -1;
+    }
 }

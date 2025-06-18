@@ -16,6 +16,7 @@ import static it.unibz.inf.pp.clash.model.snapshot.Snapshot.Player;
 import it.unibz.inf.pp.clash.model.snapshot.impl.NormalizedBoardImpl;
 import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
+import it.unibz.inf.pp.clash.model.snapshot.units.impl.UnitUtils;
 import it.unibz.inf.pp.clash.view.DisplayManager;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.HeroImpl;
@@ -57,6 +58,10 @@ public class GameEventHandler implements EventHandler {
     @Override
     public void newGame(String firstHero, String secondHero) {
         newGame(firstHero, secondHero, this::initializeBoardRandom, 7, 11);
+        var firstTurnHero = snapshot.getHero(snapshot.getActivePlayer());
+        if (firstTurnHero.isBot()) {
+            GameSnapshotUtils.doBotTurn((GameSnapshot) snapshot);
+        }
     }
 
     public void newGame(String firstHero, String secondHero, BoardInitializer boardInitializer, int boardWidth, int boardHeight) {
@@ -69,13 +74,7 @@ public class GameEventHandler implements EventHandler {
                 3
         );
 
-        @SuppressWarnings("unchecked")
-        Function<MobileUnit.UnitColor, MobileUnit>[] unitsConstructors = new Function[]{
-                (Function<MobileUnit.UnitColor, MobileUnit>) Butterfly::new,
-                (Function<MobileUnit.UnitColor, MobileUnit>) Unicorn::new,
-                (Function<MobileUnit.UnitColor, MobileUnit>) Fairy::new
-        };
-        boardInitializer.apply(snapshot.getBoard(), 8, unitsConstructors);
+        boardInitializer.apply(snapshot.getBoard(), 8, UnitUtils.mobileUnitsConstructors());
         displayManager.drawSnapshot(snapshot, "New game started! " + firstHero + " vs " + secondHero);
     }
 
@@ -144,6 +143,9 @@ public class GameEventHandler implements EventHandler {
     @Override
     public void callReinforcement() {
         if (!(snapshot instanceof GameSnapshot)) return;
+        if (moveHandler instanceof HumanMoveHandler) {
+            ((HumanMoveHandler) moveHandler).resetPreviousColumnIndex();
+        }
         GameSnapshot gs = (GameSnapshot) snapshot;
         var currentBoard = snapshot.getCurrentBoard();
 
@@ -157,8 +159,10 @@ public class GameEventHandler implements EventHandler {
 
         for (int i = 0; i < reinforcements; i++) {
             int columnIndex = findAvailableRandomSpot(currentBoard);
+
             UnitColor color = UnitColor.values()[new Random().nextInt(3)];
-            currentBoard.addUnit(columnIndex, new Butterfly(color));
+            var mobileUnitsConstructors = UnitUtils.mobileUnitsConstructors();
+            currentBoard.addUnit(columnIndex, mobileUnitsConstructors[new Random().nextInt(mobileUnitsConstructors.length)].apply(color));
         }
 
         consumeAction(gs, displayManager);
@@ -197,6 +201,9 @@ public class GameEventHandler implements EventHandler {
     // Walls can be deleted.
     private void handleDelete(int rowIndex, int columnIndex) {
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
+        if (moveHandler instanceof HumanMoveHandler) {
+            ((HumanMoveHandler) moveHandler).resetPreviousColumnIndex();
+        }
 
         var board = snapshot.getCurrentBoard();
         var unit = board.getUnit(board.normalizeRowIndex(rowIndex), columnIndex);

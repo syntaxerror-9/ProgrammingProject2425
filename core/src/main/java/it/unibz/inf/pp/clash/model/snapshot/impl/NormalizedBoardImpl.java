@@ -205,9 +205,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
                 if (u instanceof MobileUnit) {
                     toShift.add(u);
                 } else {
-
                     break;
-
                 }
             }
 

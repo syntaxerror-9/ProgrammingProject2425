@@ -87,7 +87,6 @@ public class BotPlayer {
     }
 
     public static void PlayMove(GameSnapshot gs) {
-        var rng = new Random();
         Move move = chooseMove(gs);
         move.perform(gs);
     }
