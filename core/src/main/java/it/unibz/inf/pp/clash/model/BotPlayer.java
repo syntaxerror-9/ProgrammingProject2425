@@ -50,6 +50,7 @@ public class BotPlayer {
         // If the first step fails, Second step: look for deletion spots
         // If the second step fails, Third Step: call Reinforcement
 
+
         var botBoard = gs.getCurrentBoard();
         var boardStacks = botBoard.getNormalizedBoard();
 

@@ -60,7 +60,7 @@ public class GameEventHandler implements EventHandler {
         newGame(firstHero, secondHero, this::initializeBoardRandom, 7, 11);
         var firstTurnHero = snapshot.getHero(snapshot.getActivePlayer());
         if (firstTurnHero.isBot()) {
-            GameSnapshotUtils.doBotTurn((GameSnapshot) snapshot);
+            GameSnapshotUtils.doBotTurn((GameSnapshot) snapshot, displayManager);
         }
     }
 

@@ -1,6 +1,8 @@
 package it.unibz.inf.pp.clash.logic;
 
+import com.badlogic.gdx.Gdx;
 import it.unibz.inf.pp.clash.model.BotPlayer;
+import it.unibz.inf.pp.clash.model.impl.GameEventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
@@ -15,6 +17,7 @@ import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
 import java.util.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class GameSnapshotUtils {
@@ -45,57 +48,34 @@ public class GameSnapshotUtils {
     }
 
 
-    public static void doBotTurn(GameSnapshot gs) {
-
-        System.out.println("it is bot and playing its move");
-
-        // Create a new thread for each move. This will make it so that the moves are not instant and the other
-        // player can see what each move the bot has done
-
-        var firstMoveSemaphore = new Object();
-        var secondMoveSemaphore = new Object();
-        var firstMove = new Thread(() -> {
+    public static void doBotTurn(GameSnapshot gs, DisplayManager displayManager) {
+        // Create a new thread so that the main rendering thread doesn't hang
+        new Thread(() -> {
             try {
+                // --- First Move ---
                 BotPlayer.PlayMove(gs);
+                displayManager.drawSnapshot(gs, "Bot's first move");
+                Gdx.graphics.requestRendering(); // This is necessary since we're using lazy rendering
                 Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } finally {
-                synchronized (firstMoveSemaphore) {
-                    firstMoveSemaphore.notify();
-                }
-            }
-        });
-        var secondMove = new Thread(() -> {
 
-            try {
-                synchronized (firstMoveSemaphore) {
-                    firstMoveSemaphore.wait();
-                }
+                // --- Second Move ---
                 BotPlayer.PlayMove(gs);
+                displayManager.drawSnapshot(gs, "Bot's second move");
+                Gdx.graphics.requestRendering();
                 Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } finally {
-                synchronized (secondMoveSemaphore) {
-                    secondMoveSemaphore.notify();
-                }
-            }
-        });
-        var thirdMove = new Thread(() -> {
-            try {
-                synchronized (secondMoveSemaphore) {
-                    secondMoveSemaphore.wait();
-                }
-                BotPlayer.PlayMove(gs);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        });
 
-        firstMove.start();
-        secondMove.start();
-        thirdMove.start();
+                // --- Third Move ---
+                BotPlayer.PlayMove(gs);
+                displayManager.drawSnapshot(gs, "Bot's final move");
+                Gdx.graphics.requestRendering();
+
+                // The bot's turn is now fully complete.
+                System.out.println("Bot has finished its turn.");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.err.println("Bot's turn was interrupted.");
+            }
+        }).start();
     }
 
     public static void switchTurn(GameSnapshot gs, DisplayManager displayManager) {
@@ -110,7 +90,7 @@ public class GameSnapshotUtils {
 
         var activeHero = gs.getHero(activePlayer);
         if (activeHero.isBot()) {
-            doBotTurn(gs);
+            doBotTurn(gs, displayManager);
         }
     }
 
