@@ -117,6 +117,15 @@ public class GameEventHandler implements EventHandler {
 
     @Override
     public void skipTurn() {
+        handleSkipTurn(false);
+    }
+
+    public void skipTurn(boolean isBotTurn) {
+        handleSkipTurn(isBotTurn);
+    }
+
+    private void handleSkipTurn(boolean isBotTurn) {
+
         if (snapshot == null) {
             System.out.println("Teh game is not active.");
             return;
@@ -125,6 +134,12 @@ public class GameEventHandler implements EventHandler {
         if (!(snapshot instanceof GameSnapshot gs)) {
             System.out.println("Cannot skip the turn, the snapshot is wrong.");
             return;
+        }
+        var currentHero = gs.getHero(gs.getActivePlayer());
+        if (!isBotTurn && currentHero.isBot()) {
+            System.out.println("Cannot skip turn for enemy bot.");
+            return;
+
         }
 
 
@@ -172,19 +187,22 @@ public class GameEventHandler implements EventHandler {
     @Override
     public void requestInformation(int rowIndex, int columnIndex) {
         // TODO: Arshad implement this method
-
     }
-
 
     @Override
     public void selectTile(int rowIndex, int columnIndex) {
-        handleMove(rowIndex, columnIndex);
+        handleMove(rowIndex, columnIndex, false);
+    }
+
+    // This function will get called by the bot player.
+    public void selectTile(int rowIndex, int columnIndex, boolean isBotMove) {
+        handleMove(rowIndex, columnIndex, isBotMove);
     }
 
 
     // UPDATED move unit method (now you can overlay 2 same color units for an upgrade)
-    private void handleMove(int rowIndex, int columnIndex) {
-        if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
+    private void handleMove(int rowIndex, int columnIndex, boolean isBotMove) {
+        if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager, isBotMove)) return;
 
         if (moveHandler.handleMove(rowIndex, columnIndex, snapshot.getCurrentBoard())) {
             displayManager.drawSnapshot(snapshot, "Moved.");
@@ -199,8 +217,8 @@ public class GameEventHandler implements EventHandler {
     // delete unit method
     // TODO: Check if unit is a attack formation. If it is, it cannot be destroyed.
     // Walls can be deleted.
-    private void handleDelete(int rowIndex, int columnIndex) {
-        if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager)) return;
+    private void handleDelete(int rowIndex, int columnIndex, boolean isBotMove) {
+        if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager, isBotMove)) return;
         if (moveHandler instanceof HumanMoveHandler) {
             ((HumanMoveHandler) moveHandler).resetPreviousColumnIndex();
         }
@@ -214,14 +232,18 @@ public class GameEventHandler implements EventHandler {
             consumeAction((GameSnapshot) snapshot, displayManager);
         } else {
 
-            System.out.println("There is nothing to delete here uwu");
+            System.out.println("There is nothing toColumn delete here uwu");
         }
     }
 
 
     @Override
     public void deleteUnit(int rowIndex, int columnIndex) {
-        handleDelete(rowIndex, columnIndex);
+        handleDelete(rowIndex, columnIndex, false);
+    }
+
+    public void deleteUnit(int rowIndex, int columnIndex, boolean isBotMove) {
+        handleDelete(rowIndex, columnIndex, isBotMove);
     }
 
     public Snapshot getSnapshot() {

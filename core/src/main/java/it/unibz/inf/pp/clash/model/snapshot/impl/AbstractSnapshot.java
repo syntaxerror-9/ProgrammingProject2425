@@ -1,5 +1,6 @@
 package it.unibz.inf.pp.clash.model.snapshot.impl;
 
+import it.unibz.inf.pp.clash.model.bot.BotPlayer;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
 import it.unibz.inf.pp.clash.model.snapshot.Hero;
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
@@ -15,6 +16,8 @@ public abstract class AbstractSnapshot implements Snapshot {
     protected final NormalizedBoard normalizedBoardP1, normalizedBoardP2;
     private final Hero firstHero;
     private final Hero secondHero;
+    private final Optional<BotPlayer> firstBotPlayer;
+    private final Optional<BotPlayer> secondBotPlayer;
 
     protected Player activeplayer;
     protected int actionsRemaining;
@@ -31,7 +34,20 @@ public abstract class AbstractSnapshot implements Snapshot {
         normalizedBoardP1 = NormalizedBoardImpl.createNormalizedBoard(board, Player.FIRST);
         normalizedBoardP2 = NormalizedBoardImpl.createNormalizedBoard(board, Player.SECOND);
         this.ongoingMove = ongoingMove;
+
+        if (firstHero.isBot()) {
+            firstBotPlayer = Optional.of(BotPlayer.getBotPlayerFromName(firstHero.getName()));
+        } else {
+            firstBotPlayer = Optional.empty();
+        }
+
+        if (secondHero.isBot()) {
+            secondBotPlayer = Optional.of(BotPlayer.getBotPlayerFromName(secondHero.getName()));
+        } else {
+            secondBotPlayer = Optional.empty();
+        }
     }
+
 
     @Override
     public NormalizedBoard getNormalizedBoard(Player player) {
@@ -83,4 +99,11 @@ public abstract class AbstractSnapshot implements Snapshot {
     }
 
 
+    public Optional<BotPlayer> getFirstBotPlayer() {
+        return firstBotPlayer;
+    }
+
+    public Optional<BotPlayer> getSecondBotPlayer() {
+        return secondBotPlayer;
+    }
 }
