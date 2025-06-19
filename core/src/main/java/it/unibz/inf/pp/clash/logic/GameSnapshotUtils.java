@@ -63,16 +63,16 @@ public class GameSnapshotUtils {
                 Gdx.graphics.requestRendering(); // This is necessary since we're using lazy rendering
                 Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
 
-                // --- Second Move ---
-                botPlayer.PlayMove(gs);
-                displayManager.drawSnapshot(gs, "Bot's second move");
-                Gdx.graphics.requestRendering();
-                Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
-
-                // --- Third Move ---
-                botPlayer.PlayMove(gs);
-                displayManager.drawSnapshot(gs, "Bot's final move");
-                Gdx.graphics.requestRendering();
+//                // --- Second Move ---
+//                botPlayer.PlayMove(gs);
+//                displayManager.drawSnapshot(gs, "Bot's second move");
+//                Gdx.graphics.requestRendering();
+//                Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
+//
+//                // --- Third Move ---
+//                botPlayer.PlayMove(gs);
+//                displayManager.drawSnapshot(gs, "Bot's final move");
+//                Gdx.graphics.requestRendering();
 
                 System.out.println("Bot has finished its turn.");
             } catch (InterruptedException e) {

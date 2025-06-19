@@ -11,14 +11,12 @@ import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Wall;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 public class NormalizedBoardImpl implements NormalizedBoard {
 
     private Board board;
     private Snapshot.Player player;
-    // TODO: A dequeue might be more appropriate
     private Stack<Unit>[] normalizedBoard;
     final private Set<Formation> formations = new HashSet<>();
 

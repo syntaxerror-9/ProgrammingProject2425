@@ -14,6 +14,9 @@ public interface BotPlayer {
     public static int BOT_MOVE_DELAY = 1000;
 
     static BotPlayer getBotPlayerFromName(String name) {
+        if (name.equals("Bot(LLM)")) {
+            return new LLMBot();
+        }
         return new ProceduralBot();
     }
 
