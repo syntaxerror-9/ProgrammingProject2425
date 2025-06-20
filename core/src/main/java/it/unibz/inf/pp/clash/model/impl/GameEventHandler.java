@@ -2,6 +2,7 @@ package it.unibz.inf.pp.clash.model.impl;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+
 import it.unibz.inf.pp.clash.model.BoardInitializer;
 import it.unibz.inf.pp.clash.model.EventHandler;
 import it.unibz.inf.pp.clash.model.MoveHandler;
@@ -135,25 +136,41 @@ public class GameEventHandler implements EventHandler {
     @Override
     public void callReinforcement() {
         if (!(snapshot instanceof GameSnapshot)) return;
+
         GameSnapshot gs = (GameSnapshot) snapshot;
         var currentBoard = snapshot.getCurrentBoard();
-
         Snapshot.Player player = gs.getActivePlayer();
-        int reinforcements = gs.getSizeOfReinforcement(player);
+
+        int reinforcements = NormalizedBoardImpl.getRemovedUnitsCount(player);
 
         if (reinforcements <= 0) {
             displayManager.drawSnapshot(gs, "No reinforcements available.");
             return;
         }
 
+        Random rng = new Random();
+
         for (int i = 0; i < reinforcements; i++) {
             int columnIndex = findAvailableRandomSpot(currentBoard);
-            UnitColor color = UnitColor.values()[new Random().nextInt(3)];
-            currentBoard.addUnit(columnIndex, new Butterfly(color));
+            UnitColor color = UnitColor.values()[rng.nextInt(UnitColor.values().length)];
+            int type = rng.nextInt(3);
+            Unit unit = switch (type) {
+                case 0 -> new Butterfly(color);
+                case 1 -> new Fairy(color);
+                case 2 -> new Unicorn(color);
+                default -> throw new IllegalStateException("Error in unit type");
+            };
+            currentBoard.addUnit(columnIndex, unit);
+
         }
 
+        displayManager.drawSnapshot(gs, reinforcements + " reinforcements called!");
         consumeAction(gs, displayManager);
+        NormalizedBoardImpl.resetRemovedUnitsCount(player);
     }
+
+
+
 
 
     @Override
@@ -197,14 +214,19 @@ public class GameEventHandler implements EventHandler {
         var unit = board.getUnit(board.normalizeRowIndex(rowIndex), columnIndex);
 
         if (unit.isPresent()) {
+
+            //counting for call reinforcement
+            Snapshot.Player player = snapshot.getActivePlayer();
+            NormalizedBoardImpl.countAsRemoved(player, unit.get());
+
             board.removeUnit(board.normalizeRowIndex(rowIndex), columnIndex);
             displayManager.drawSnapshot(snapshot, "Unit deleted! :D");
             consumeAction((GameSnapshot) snapshot, displayManager);
         } else {
-
             System.out.println("There is nothing to delete here uwu");
         }
     }
+
 
 
     @Override

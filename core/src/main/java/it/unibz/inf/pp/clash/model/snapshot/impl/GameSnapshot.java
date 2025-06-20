@@ -38,8 +38,8 @@ public class GameSnapshot extends AbstractSnapshot {
     }
 
     @Override
-    public int getSizeOfReinforcement(Player player) {
-        return 3;
+    public int getSizeOfReinforcement(Snapshot.Player player) {
+        return NormalizedBoardImpl.getRemovedUnitsCount(player);
     }
 
 }
