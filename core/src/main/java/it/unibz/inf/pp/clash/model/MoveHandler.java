@@ -1,7 +1,6 @@
 package it.unibz.inf.pp.clash.model;
 
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
-import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 
 public interface MoveHandler {
 

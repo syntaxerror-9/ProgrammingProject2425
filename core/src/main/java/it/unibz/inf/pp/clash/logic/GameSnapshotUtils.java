@@ -10,13 +10,9 @@ import it.unibz.inf.pp.clash.view.DisplayManager;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
 
-import java.util.Random;
-
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
 
 import java.util.*;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class GameSnapshotUtils {

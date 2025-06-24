@@ -161,7 +161,8 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     }
 
     private void initializeNormalizedBoard() {
-        var stacks = new Stack[getMaxColumnIndex() + 1];
+
+        Stack<Unit>[] stacks = new Stack[getMaxColumnIndex() + 1];
 
         for (int i = 0; i < stacks.length; i++) {
             var stack = new Stack<Unit>();
@@ -198,8 +199,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
 
             // here: attacking formations will not replace walls anymore
             int insertIndex = 0;
-            // finding the closest wall
-            insertIndex = 0;
+
             for (int i = 0; i < stack.size(); i++) {
                 Unit unit = stack.get(i);
                 if (unit instanceof Wall) {
@@ -478,8 +478,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
             var stack = normalizedBoard[i];
             for (int j = 0; j < stack.size(); j++) {
                 var row = getRealRowIndex(j);
-                var col = i;
-                board.addUnit(row, col, stack.get(j));
+                board.addUnit(row, i, stack.get(j));
             }
         }
 

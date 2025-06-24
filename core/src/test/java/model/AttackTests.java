@@ -2,7 +2,6 @@ package model;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import it.unibz.inf.pp.clash.logic.Utils;
 import it.unibz.inf.pp.clash.model.impl.GameEventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;

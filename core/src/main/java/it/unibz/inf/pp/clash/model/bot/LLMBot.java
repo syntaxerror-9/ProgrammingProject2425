@@ -5,7 +5,6 @@ import it.unibz.inf.pp.clash.model.bot.botmoves.CallReinforcement;
 import it.unibz.inf.pp.clash.model.bot.botmoves.DeleteUnit;
 import it.unibz.inf.pp.clash.model.bot.botmoves.MoveUnit;
 import it.unibz.inf.pp.clash.model.bot.botmoves.SkipTurn;
-import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
@@ -15,14 +14,13 @@ import it.unibz.inf.pp.clash.view.singletons.FileManager;
 
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 public class LLMBot implements BotPlayer {
 
-    private StringBuilder llmContext = new StringBuilder();
+    private final StringBuilder llmContext = new StringBuilder();
     private final String apiUrl = "https://api.groq.com/openai/v1/chat/completions";
 
     private String getApiKey() {

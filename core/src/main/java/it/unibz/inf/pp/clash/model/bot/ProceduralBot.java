@@ -42,7 +42,6 @@ public class ProceduralBot implements BotPlayer {
             var stack = boardStacks[stackIndicesWithUnits.get(colIndex)];
             var rowIndex = rng.nextInt(stack.size());
 
-            // TODO: Check if we're about to delete a formation. if so, try again.
             return new DeleteUnit(rowIndex, colIndex);
         }
 

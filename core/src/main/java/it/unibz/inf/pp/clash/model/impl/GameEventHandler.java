@@ -1,7 +1,5 @@
 package it.unibz.inf.pp.clash.model.impl;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import it.unibz.inf.pp.clash.logic.GameSnapshotUtils;
 import it.unibz.inf.pp.clash.model.BoardInitializer;
 import it.unibz.inf.pp.clash.model.EventHandler;
@@ -13,9 +11,6 @@ import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 
 import static it.unibz.inf.pp.clash.model.snapshot.Snapshot.Player;
 
-import it.unibz.inf.pp.clash.model.snapshot.impl.NormalizedBoardImpl;
-import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
-import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.UnitUtils;
 import it.unibz.inf.pp.clash.view.DisplayManager;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
@@ -25,8 +20,6 @@ import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
 
 import static it.unibz.inf.pp.clash.logic.GameSnapshotUtils.*;
 
-import it.unibz.inf.pp.clash.model.snapshot.units.impl.Unicorn;
-import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 
 import java.util.Random;
@@ -41,7 +34,6 @@ public class GameEventHandler implements EventHandler {
 
     static private GameEventHandler instance;
 
-    // TODO: This probably should only listen to the events and delegate the logic to another class
     public GameEventHandler(DisplayManager displayManager) {
         if (instance != null) throw new RuntimeException("GameEventHandler should be a singleton");
         instance = this;
@@ -96,12 +88,101 @@ public class GameEventHandler implements EventHandler {
         return columnIndex;
     }
 
+    private int findAvailableRandomSpotWithoutFormation(NormalizedBoard normalizedBoard, MobileUnit unit) {
+        var maxTries = normalizedBoard.getMaxColumnIndex() + 1;
+        int tries = 0;
+
+        while (tries < maxTries) {
+            var columnIndex = findAvailableRandomSpot(normalizedBoard);
+            if (columnIndex == -1)
+                return -1; // No available spot found. Board is full.
+
+            var board = normalizedBoard.getNormalizedBoard();
+            var column = board[columnIndex];
+
+            // First: check if column contains already at the top two same units. If so, skip this column
+            if (column.size() >= 2) {
+                var topUnit = column.get(column.size() - 1);
+                var secondTopUnit = column.get(column.size() - 2);
+                if (topUnit instanceof MobileUnit topUnitMobile && secondTopUnit instanceof MobileUnit secondTopUnitMobile) {
+                    // NOTE: Matches is transitive
+                    if (topUnitMobile.matches(secondTopUnitMobile) && secondTopUnitMobile.matches(unit)) {
+                        tries++;
+                        continue; // Skip this column, it already has two same units at the top
+                    }
+                }
+            }
+            int currentRowIndex = column.size();
+
+            // Second: Check if the adjacent columns at that row are not occupied by the same unit (that would form a wall)
+            if (columnIndex > 0 && columnIndex < normalizedBoard.getMaxColumnIndex()) {
+                var leftColumn = board[columnIndex - 1];
+                var rightColumn = board[columnIndex + 1];
+
+                if (leftColumn.size() > currentRowIndex && rightColumn.size() > currentRowIndex) {
+                    var leftUnit = leftColumn.get(column.size());
+                    var rightUnit = rightColumn.get(column.size());
+
+                    if (leftUnit instanceof MobileUnit leftMobile && rightUnit instanceof MobileUnit rightMobile) {
+                        if (leftMobile.matches(unit) && rightMobile.matches(unit)) {
+                            tries++;
+                            continue; // Skip this column, it would form a wall
+                        }
+                    }
+                }
+            }
+
+            // Third: check if two columns to the left and right of the current column are not occupied by the same unit
+            // - Check all left
+            if (columnIndex >= 2) {
+                var leftColumn = board[columnIndex - 1];
+                var leftLeftColumn = board[columnIndex - 2];
+                if (leftColumn.size() > column.size() && leftLeftColumn.size() > column.size()) {
+                    var leftUnit = leftColumn.get(column.size());
+                    var leftLeftUnit = leftLeftColumn.get(column.size());
+
+                    if (leftUnit instanceof MobileUnit leftMobile && leftLeftUnit instanceof MobileUnit leftLeftMobile) {
+                        if (leftMobile.matches(unit) && leftLeftMobile.matches(unit)) {
+                            tries++;
+                            continue; // Skip this column, it would form a wall
+                        }
+                    }
+                }
+            }
+            // - Check all right
+            if (columnIndex <= normalizedBoard.getMaxColumnIndex() - 2) {
+                var rightColumn = board[columnIndex + 1];
+                var rightRightColumn = board[columnIndex + 2];
+                if (rightColumn.size() > column.size() && rightRightColumn.size() > column.size()) {
+                    var rightUnit = rightColumn.get(column.size());
+                    var rightRightUnit = rightRightColumn.get(column.size());
+
+                    if (rightUnit instanceof MobileUnit rightMobile && rightRightUnit instanceof MobileUnit rightRightMobile) {
+                        if (rightMobile.matches(unit) && rightRightMobile.matches(unit)) {
+                            tries++;
+                            continue; // Skip this column, it would form a wall
+                        }
+                    }
+                }
+            }
+
+            // If we reached here, we found a valid spot
+            return columnIndex;
+        }
+        System.out.println("No available spot found after " + maxTries + " tries.");
+        return -1; // No available spot found after max tries
+    }
+
     private void initializeBoardRandom(Board board, int amount, Function<MobileUnit.UnitColor, MobileUnit>[] unitConstructors) {
         var random = new Random();
         for (int i = 0; i < amount; i++) {
-            int p1Index = findAvailableRandomSpot(snapshot.getNormalizedBoard(Player.FIRST)), p2Index = findAvailableRandomSpot(snapshot.getNormalizedBoard(Player.SECOND));
-            UnitColor p1Color = UnitColor.values()[random.nextInt(3)], p2Color = UnitColor.values()[random.nextInt(3)];
-            MobileUnit unit1 = unitConstructors[random.nextInt(unitConstructors.length)].apply(p1Color), unit2 = unitConstructors[random.nextInt(unitConstructors.length)].apply(p2Color);
+            UnitColor p1Color = UnitColor.values()[random.nextInt(3)],
+                    p2Color = UnitColor.values()[random.nextInt(3)];
+            MobileUnit unit1 = unitConstructors[random.nextInt(unitConstructors.length)].apply(p1Color),
+                    unit2 = unitConstructors[random.nextInt(unitConstructors.length)].apply(p2Color);
+            int p1Index = findAvailableRandomSpotWithoutFormation(snapshot.getNormalizedBoard(Player.FIRST), unit1),
+                    p2Index = findAvailableRandomSpotWithoutFormation(snapshot.getNormalizedBoard(Player.SECOND), unit2);
+
             snapshot.getNormalizedBoard(Player.FIRST).addUnit(p1Index, unit1);
             snapshot.getNormalizedBoard(Player.SECOND).addUnit(p2Index, unit2);
 
@@ -173,11 +254,12 @@ public class GameEventHandler implements EventHandler {
         }
 
         for (int i = 0; i < reinforcements; i++) {
-            int columnIndex = findAvailableRandomSpot(currentBoard);
 
             UnitColor color = UnitColor.values()[new Random().nextInt(3)];
             var mobileUnitsConstructors = UnitUtils.mobileUnitsConstructors();
-            currentBoard.addUnit(columnIndex, mobileUnitsConstructors[new Random().nextInt(mobileUnitsConstructors.length)].apply(color));
+            MobileUnit unit = mobileUnitsConstructors[new Random().nextInt(mobileUnitsConstructors.length)].apply(color);
+            int columnIndex = findAvailableRandomSpotWithoutFormation(currentBoard, unit);
+            currentBoard.addUnit(columnIndex, unit);
         }
 
         consumeAction(gs, displayManager);
