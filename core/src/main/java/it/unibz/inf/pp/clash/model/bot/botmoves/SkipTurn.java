@@ -4,13 +4,10 @@ import it.unibz.inf.pp.clash.model.bot.Move;
 import it.unibz.inf.pp.clash.model.impl.GameEventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
 
-public record SkipTurn(int rowIndex, int columnIndex) implements Move {
+public record SkipTurn() implements Move {
     @Override
     public void perform(GameSnapshot gameSnapshot) {
         var handler = GameEventHandler.getInstance();
-        var currentBoard = gameSnapshot.getCurrentBoard();
-
         handler.skipTurn(true);
-
     }
 }

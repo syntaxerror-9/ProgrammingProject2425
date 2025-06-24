@@ -2,6 +2,7 @@ package it.unibz.inf.pp.clash.logic;
 
 import com.badlogic.gdx.Gdx;
 import it.unibz.inf.pp.clash.model.bot.BotPlayer;
+import it.unibz.inf.pp.clash.model.impl.GameEventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
@@ -48,7 +49,8 @@ public class GameSnapshotUtils {
 
     public static void doBotTurn(GameSnapshot gs, DisplayManager displayManager) {
 
-        var botHandleOpt = switch (gs.getActivePlayer()) {
+        var currentPlayer = gs.getActivePlayer();
+        var botHandleOpt = switch (currentPlayer) {
             case FIRST -> gs.getFirstBotPlayer();
             case SECOND -> gs.getSecondBotPlayer();
         };
@@ -59,25 +61,42 @@ public class GameSnapshotUtils {
             try {
                 // --- First Move ---
                 botPlayer.PlayMove(gs);
-                displayManager.drawSnapshot(gs, "Bot's first move");
                 Gdx.graphics.requestRendering(); // This is necessary since we're using lazy rendering
                 Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
+                // Check if the turn is still the bot's turn.
+                if (gs.getActivePlayer() != currentPlayer) {
+                    System.out.println("Bot turn was skipped");
+                    return;
+                }
 
-//                // --- Second Move ---
-//                botPlayer.PlayMove(gs);
-//                displayManager.drawSnapshot(gs, "Bot's second move");
-//                Gdx.graphics.requestRendering();
-//                Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
-//
-//                // --- Third Move ---
-//                botPlayer.PlayMove(gs);
-//                displayManager.drawSnapshot(gs, "Bot's final move");
-//                Gdx.graphics.requestRendering();
+
+                // --- Second Move ---
+                botPlayer.PlayMove(gs);
+                Gdx.graphics.requestRendering();
+                Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
+                if (gs.getActivePlayer() != currentPlayer) {
+                    System.out.println("Bot turn was skipped");
+                    return;
+                }
+                // --- Third Move ---
+                botPlayer.PlayMove(gs);
+                Gdx.graphics.requestRendering();
 
                 System.out.println("Bot has finished its turn.");
+
+                if (gs.getActivePlayer() == currentPlayer) {
+                    var handler = GameEventHandler.getInstance();
+                    handler.skipTurn(true); // Sometimes LLMs generated moves that are invalid, so we skip the turn
+                } else {
+                    System.out.println("Bot's turn was skipped.");
+                }
+
+
             } catch (InterruptedException e) {
                 System.err.println("Bot's turn was interrupted.");
                 Thread.currentThread().interrupt();
+                var handler = GameEventHandler.getInstance();
+                handler.skipTurn(true); // Skip the turn if interrupted
             }
         }).start();
     }

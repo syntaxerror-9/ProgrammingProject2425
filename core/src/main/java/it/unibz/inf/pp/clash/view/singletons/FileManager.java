@@ -5,14 +5,18 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unibz.inf.pp.clash.view.singletons.Dimensions.Resolution;
+
 /**
  * Implements the singleton design pattern.
  */
@@ -29,10 +33,22 @@ public class FileManager {
     private final String colorsConfigFile = "colors/colors.properties";
     private final String fontConfigFile = "fonts/fonts.properties";
     private final String skinFile = "skins/default/skin/uiskin.json";
+    private final String llmTutorial = "prompts/llmtutorial.txt";
 
-    private FileManager() {}
+    private FileManager() {
+    }
+
     public static FileManager instance() {
         return instance;
+    }
+
+    public String loadLLMTutorialPrompt() {
+        try (FileInputStream fis = new FileInputStream(llmTutorial)) {
+            byte[] data = fis.readAllBytes();
+            return new String(data, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     Map<String, String> loadPortraitPropertyFile() {

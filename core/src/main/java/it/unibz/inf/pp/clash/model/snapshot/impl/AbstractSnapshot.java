@@ -57,11 +57,20 @@ public abstract class AbstractSnapshot implements Snapshot {
         };
     }
 
+
     @Override
     public NormalizedBoard getCurrentBoard() {
         return switch (activeplayer) {
             case FIRST -> normalizedBoardP1;
             case SECOND -> normalizedBoardP2;
+        };
+    }
+
+    @Override
+    public NormalizedBoard getNonCurrentBoard() {
+        return switch (activeplayer) {
+            case FIRST -> normalizedBoardP2;
+            case SECOND -> normalizedBoardP1;
         };
     }
 
@@ -80,6 +89,11 @@ public abstract class AbstractSnapshot implements Snapshot {
     @Override
     public Player getActivePlayer() {
         return activeplayer;
+    }
+
+    @Override
+    public Player getNonActivePlayer() {
+        return activeplayer == Player.FIRST ? Player.SECOND : Player.FIRST;
     }
 
     @Override
