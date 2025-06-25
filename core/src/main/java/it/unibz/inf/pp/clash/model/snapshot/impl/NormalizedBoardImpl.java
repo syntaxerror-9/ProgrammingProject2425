@@ -499,8 +499,8 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     private static final Map<Snapshot.Player, Integer> removedUnitsCount = new EnumMap<>(Snapshot.Player.class);
 
     static {
-        removedUnitsCount.put(Snapshot.Player.FIRST, 0);
-        removedUnitsCount.put(Snapshot.Player.SECOND, 0);
+        removedUnitsCount.put(Snapshot.Player.FIRST, 3);
+        removedUnitsCount.put(Snapshot.Player.SECOND, 3);
     }
 
     public static void countAsRemoved(Snapshot.Player player, Unit unit) {
@@ -517,8 +517,6 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     public static void resetRemovedUnitsCount(Snapshot.Player player) {
         removedUnitsCount.put(player, 0);
     }
-
-
 
 
 }
