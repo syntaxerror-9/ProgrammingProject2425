@@ -25,6 +25,11 @@ public interface Snapshot {
     Player getActivePlayer();
 
     /**
+     * @return the player that is not active
+     */
+    Player getNonActivePlayer();
+
+    /**
      * @return the number of remaining actions for the active player
      */
     int getNumberOfRemainingActions();
@@ -44,4 +49,9 @@ public interface Snapshot {
     NormalizedBoard getNormalizedBoard(Player player);
 
     NormalizedBoard getCurrentBoard();
+
+    NormalizedBoard getNonCurrentBoard();
+
+    void setActivePlayer(Player player);
+
 }

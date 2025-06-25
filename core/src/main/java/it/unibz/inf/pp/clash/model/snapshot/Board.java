@@ -24,7 +24,8 @@ public interface Board {
     /**
      * A pair of coordinates for a tile.
      */
-    record TileCoordinates(int rowIndex, int columnIndex){}
+    record TileCoordinates(int rowIndex, int columnIndex) {
+    }
 
     /**
      * @return the maximum possible index for a column (a.k.a. size of a row -1)
@@ -50,7 +51,7 @@ public interface Board {
     /**
      * Adds the input unit to the tile at the input coordinates.
      *
-     * @throws OccupiedTileException if there is already a unit on this tile.
+     * @throws OccupiedTileException          if there is already a unit on this tile.
      * @throws CoordinatesOutOfBoardException if the coordinates are out of this board's boundaries.
      */
     void addUnit(int rowIndex, int columnIndex, Unit unit);

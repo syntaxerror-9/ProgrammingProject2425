@@ -11,14 +11,12 @@ import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Wall;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 public class NormalizedBoardImpl implements NormalizedBoard {
 
     private Board board;
     private Snapshot.Player player;
-    // TODO: A dequeue might be more appropriate
     private Stack<Unit>[] normalizedBoard;
     final private Set<Formation> formations = new HashSet<>();
 
@@ -47,7 +45,11 @@ public class NormalizedBoardImpl implements NormalizedBoard {
 
     @Override
     public Optional<Unit> getUnit(int rowIndex, int columnIndex) {
-        checkBoundaries(rowIndex, columnIndex);
+        try {
+            checkBoundaries(rowIndex, columnIndex);
+        } catch (CoordinatesOutOfBoardException ex) {
+            return Optional.empty();
+        }
         if (rowIndex >= normalizedBoard[columnIndex].size() || rowIndex < 0) return Optional.empty();
         return Optional.ofNullable(normalizedBoard[columnIndex].get(rowIndex));
     }
@@ -55,6 +57,12 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     @Override
     public Optional<Unit> getUnit(int columnIndex) {
         return getUnit(Math.max(normalizedBoard[columnIndex].size() - 1, 0), columnIndex);
+    }
+
+    @Override
+    public boolean isUnitInFormation(Unit unit) {
+        return formations.stream().anyMatch(formation ->
+                formation.getUnits().contains(unit));
     }
 
     @Override
@@ -70,8 +78,15 @@ public class NormalizedBoardImpl implements NormalizedBoard {
 
     @Override
     public boolean isFull() {
-        return Arrays.stream(normalizedBoard).allMatch(stack -> stack.size() >= (getMaxRowIndex() + 1));
+        return getAvailableSpots() == 0;
     }
+
+
+    @Override
+    public int getAvailableSpots() {
+        return Arrays.stream(normalizedBoard).mapToInt(stack -> (getMaxRowIndex() + 1) - stack.size()).sum();
+    }
+
 
     @Override
     public void addUnit(int rowIndex, int columnIndex, Unit unit) {
@@ -130,7 +145,8 @@ public class NormalizedBoardImpl implements NormalizedBoard {
         }
     }
 
-    private int getRealRowIndex(int normalizedRowIndex) {
+    @Override
+    public int getRealRowIndex(int normalizedRowIndex) {
         var middle = (board.getMaxRowIndex() + 1) / 2;
         if (player == Snapshot.Player.FIRST) {
             return normalizedRowIndex + middle;
@@ -145,7 +161,8 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     }
 
     private void initializeNormalizedBoard() {
-        var stacks = new Stack[getMaxColumnIndex() + 1];
+
+        Stack<Unit>[] stacks = new Stack[getMaxColumnIndex() + 1];
 
         for (int i = 0; i < stacks.length; i++) {
             var stack = new Stack<Unit>();
@@ -189,8 +206,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
 
             // here: attacking formations will not replace walls anymore
             int insertIndex = 0;
-            // finding the closest wall
-            insertIndex = 0;
+
             for (int i = 0; i < stack.size(); i++) {
                 Unit unit = stack.get(i);
                 if (unit instanceof Wall) {
@@ -204,16 +220,14 @@ public class NormalizedBoardImpl implements NormalizedBoard {
                 }
             }
 
-            // moving units to make space (not the walls)
+            // moving units toColumn make space (not the walls)
             List<Unit> toShift = new ArrayList<>();
             for (int i = insertIndex; i < stack.size(); i++) {
                 Unit u = stack.get(i);
                 if (u instanceof MobileUnit) {
                     toShift.add(u);
                 } else {
-
                     break;
-
                 }
             }
 
@@ -460,7 +474,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
         System.out.println("Placed a new wall chain.");
     }
 
-    // Applies the normalized board state to the actual board. Making sure they're always in sync.
+    // Applies the normalized board state toColumn the actual board. Making sure they're always in sync.
     void applyBoardState() {
         // Completely reset this player's side of the board
         for (int i = 0; i <= getMaxColumnIndex(); i++) {
@@ -475,8 +489,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
             var stack = normalizedBoard[i];
             for (int j = 0; j < stack.size(); j++) {
                 var row = getRealRowIndex(j);
-                var col = i;
-                board.addUnit(row, col, stack.get(j));
+                board.addUnit(row, i, stack.get(j));
             }
         }
 

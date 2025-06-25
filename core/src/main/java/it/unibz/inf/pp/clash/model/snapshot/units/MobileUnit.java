@@ -5,7 +5,19 @@ package it.unibz.inf.pp.clash.model.snapshot.units;
  */
 public interface MobileUnit extends Unit, UpgradableUnit, AttackingUnit {
 
-    enum UnitColor {ONE, TWO, THREE}
+    enum UnitColor {
+        ONE, TWO, THREE;
+
+        public String getPrintString() {
+            return switch (this) {
+                case ONE -> "1";
+                case TWO -> "2";
+                case THREE -> "3";
+                default -> throw new IllegalArgumentException("Unknown color: " + this);
+            };
+        }
+    }
+
 
     /**
      * @return the unit's color (two units of the same type may have different colors)

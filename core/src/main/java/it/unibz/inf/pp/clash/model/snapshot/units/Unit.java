@@ -12,5 +12,5 @@ public interface Unit {
 
     void setHealth(int health);
 
-
+    String getPrintString();
 }
