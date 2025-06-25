@@ -74,7 +74,7 @@ public class GameEventHandler implements EventHandler {
                 3
         );
 
-        boardInitializer.apply(snapshot.getBoard(), 8, UnitUtils.mobileUnitsConstructors());
+        boardInitializer.apply(snapshot.getBoard(), 16, UnitUtils.mobileUnitsConstructors());
         displayManager.drawSnapshot(snapshot, "New game started! " + firstHero + " vs " + secondHero);
     }
 
@@ -265,35 +265,20 @@ public class GameEventHandler implements EventHandler {
         int placed = 0;
 
         while (placed < reinforcements) {
-            boolean added = false;
 
-            for (int attempt = 0; attempt < 10 && !added; attempt++) { //10 attemps (trying to add units without triggering formations)
-                int columnIndex = findAvailableRandomSpot(board);
-                UnitColor color = UnitColor.values()[rng.nextInt(3)];
-                int type = rng.nextInt(3);
 
-                MobileUnit unit = switch (type) {
-                    case 0 -> new Butterfly(color);
-                    case 1 -> new Fairy(color);
-                    case 2 -> new Unicorn(color);
-                    default -> throw new IllegalStateException("Wrong unit type.");
-                };
+            UnitColor color = UnitColor.values()[rng.nextInt(3)];
+            int type = rng.nextInt(3);
+            MobileUnit unit = switch (type) {
+                case 0 -> new Butterfly(color);
+                case 1 -> new Fairy(color);
+                case 2 -> new Unicorn(color);
+                default -> throw new IllegalStateException("Wrong unit type.");
+            };
+            int columnIndex = findAvailableRandomSpotWithoutFormation(board, unit);
+            board.addUnit(columnIndex, unit);
 
-                var column = board.getNormalizedBoard()[columnIndex];
-                int oldSize = column.size();
-
-                board.addUnit(columnIndex, unit);
-
-                //checking is something happened to the units: then it triggered a formation: we dont dont that
-                if (!column.contains(unit) || column.size() < oldSize + 1) {
-                    column.remove(unit);
-                } else {
-                    added = true;
-                    placed++;
-                }
-            }
-
-            if (!added) break;
+            placed++;
         }
 
         displayManager.drawSnapshot(gs, placed + " reinforcements called!");
