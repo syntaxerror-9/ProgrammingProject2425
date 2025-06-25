@@ -1,5 +1,8 @@
 package it.unibz.inf.pp.clash.model.impl;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+
 import it.unibz.inf.pp.clash.logic.GameSnapshotUtils;
 import it.unibz.inf.pp.clash.model.BoardInitializer;
 import it.unibz.inf.pp.clash.model.EventHandler;
@@ -11,6 +14,8 @@ import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 
 import static it.unibz.inf.pp.clash.model.snapshot.Snapshot.Player;
 
+import it.unibz.inf.pp.clash.model.snapshot.impl.NormalizedBoardImpl;
+import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.UnitUtils;
 import it.unibz.inf.pp.clash.view.DisplayManager;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
@@ -20,9 +25,12 @@ import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
 
 import static it.unibz.inf.pp.clash.logic.GameSnapshotUtils.*;
 
+import it.unibz.inf.pp.clash.model.snapshot.units.impl.Unicorn;
+import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 
 import java.util.Random;
+import java.util.Stack;
 import java.util.function.Function;
 
 
@@ -242,34 +250,64 @@ public class GameEventHandler implements EventHandler {
         if (moveHandler instanceof HumanMoveHandler) {
             ((HumanMoveHandler) moveHandler).resetPreviousColumnIndex();
         }
-        GameSnapshot gs = (GameSnapshot) snapshot;
-        var currentBoard = snapshot.getCurrentBoard();
 
+        GameSnapshot gs = (GameSnapshot) snapshot;
+        var board = (NormalizedBoardImpl) snapshot.getCurrentBoard();
         Snapshot.Player player = gs.getActivePlayer();
-        int reinforcements = gs.getSizeOfReinforcement(player);
+        int reinforcements = NormalizedBoardImpl.getRemovedUnitsCount(player);
 
         if (reinforcements <= 0) {
             displayManager.drawSnapshot(gs, "No reinforcements available.");
             return;
         }
 
-        for (int i = 0; i < reinforcements; i++) {
+        Random rng = new Random();
+        int placed = 0;
 
-            UnitColor color = UnitColor.values()[new Random().nextInt(3)];
-            var mobileUnitsConstructors = UnitUtils.mobileUnitsConstructors();
-            MobileUnit unit = mobileUnitsConstructors[new Random().nextInt(mobileUnitsConstructors.length)].apply(color);
-            int columnIndex = findAvailableRandomSpotWithoutFormation(currentBoard, unit);
-            currentBoard.addUnit(columnIndex, unit);
+        while (placed < reinforcements) {
+            boolean added = false;
+
+            for (int attempt = 0; attempt < 10 && !added; attempt++) { //10 attemps (trying to add units without triggering formations)
+                int columnIndex = findAvailableRandomSpot(board);
+                UnitColor color = UnitColor.values()[rng.nextInt(3)];
+                int type = rng.nextInt(3);
+
+                MobileUnit unit = switch (type) {
+                    case 0 -> new Butterfly(color);
+                    case 1 -> new Fairy(color);
+                    case 2 -> new Unicorn(color);
+                    default -> throw new IllegalStateException("Wrong unit type.");
+                };
+
+                var column = board.getNormalizedBoard()[columnIndex];
+                int oldSize = column.size();
+
+                board.addUnit(columnIndex, unit);
+
+                //checking is something happened to the units: then it triggered a formation: we dont dont that
+                if (!column.contains(unit) || column.size() < oldSize + 1) {
+                    column.remove(unit);
+                } else {
+                    added = true;
+                    placed++;
+                }
+            }
+
+            if (!added) break;
         }
 
+        displayManager.drawSnapshot(gs, placed + " reinforcements called!");
         consumeAction(gs, displayManager);
+        NormalizedBoardImpl.resetRemovedUnitsCount(player);
     }
 
 
     @Override
     public void requestInformation(int rowIndex, int columnIndex) {
         // TODO: Arshad implement this method
+
     }
+
 
     @Override
     public void selectTile(int rowIndex, int columnIndex) {
@@ -287,11 +325,15 @@ public class GameEventHandler implements EventHandler {
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager, isBotMove)) return;
 
         if (moveHandler.handleMove(rowIndex, columnIndex, snapshot.getCurrentBoard())) {
+
             displayManager.drawSnapshot(snapshot, "Moved.");
             consumeAction((GameSnapshot) snapshot, displayManager);
+
+
         } else {
             displayManager.drawSnapshot(snapshot, "Not moved");
         }
+
 
     }
 
@@ -309,6 +351,11 @@ public class GameEventHandler implements EventHandler {
         var unit = board.getUnit(board.normalizeRowIndex(rowIndex), columnIndex);
 
         if (unit.isPresent()) {
+
+            //counting for call reinforcement
+            Snapshot.Player player = snapshot.getActivePlayer();
+            NormalizedBoardImpl.countAsRemoved(player, unit.get());
+
             board.removeUnit(board.normalizeRowIndex(rowIndex), columnIndex);
             displayManager.drawSnapshot(snapshot, "Unit deleted! :D");
             consumeAction((GameSnapshot) snapshot, displayManager);

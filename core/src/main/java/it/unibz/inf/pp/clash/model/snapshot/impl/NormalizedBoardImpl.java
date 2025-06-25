@@ -184,8 +184,15 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     }
 
     private void removeFormation(Formation formation) {
+
+        //counting for reinforcement
+        for (Unit unit : formation.getUnits()) {
+            countAsRemoved(player, unit);
+        }
+
         formations.remove(formation);
         normalizedBoard[formation.getColumnIndex()].removeAll(formation.getUnits());
+
     }
 
     private void applyFormations(List<Formation> newFormations) {
@@ -287,6 +294,7 @@ public class NormalizedBoardImpl implements NormalizedBoard {
                 damage -= unit.getHealth();
                 // TODO: Check if the unit was in a formation
                 removeUnit(0, column);
+                countAsRemoved(player, unit);
             } else {
                 unit.setHealth(unit.getHealth() - damage);
                 damage = 0;
@@ -414,7 +422,10 @@ public class NormalizedBoardImpl implements NormalizedBoard {
         // removing units
         for (var unit : units) {
             for (var stack : normalizedBoard) {
-                stack.remove(unit);
+                if (stack.remove(unit)) {
+                    countAsRemoved(player, unit);
+                    break;
+                }
             }
         }
 
@@ -483,5 +494,31 @@ public class NormalizedBoardImpl implements NormalizedBoard {
         }
 
     }
+
+    //counting removed units - for call reinforcement
+    private static final Map<Snapshot.Player, Integer> removedUnitsCount = new EnumMap<>(Snapshot.Player.class);
+
+    static {
+        removedUnitsCount.put(Snapshot.Player.FIRST, 0);
+        removedUnitsCount.put(Snapshot.Player.SECOND, 0);
+    }
+
+    public static void countAsRemoved(Snapshot.Player player, Unit unit) {
+        if (unit instanceof MobileUnit) {
+            removedUnitsCount.merge(player, 1, Integer::sum);
+        }
+    }
+
+
+    public static int getRemovedUnitsCount(Snapshot.Player player) {
+        return removedUnitsCount.get(player);
+    }
+
+    public static void resetRemovedUnitsCount(Snapshot.Player player) {
+        removedUnitsCount.put(player, 0);
+    }
+
+
+
 
 }

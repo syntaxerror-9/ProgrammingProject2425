@@ -2,6 +2,7 @@ package it.unibz.inf.pp.clash.model.snapshot.impl;
 
 import it.unibz.inf.pp.clash.model.snapshot.Board;
 import it.unibz.inf.pp.clash.model.snapshot.Hero;
+import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 
 public class GameSnapshot extends AbstractSnapshot {
 
@@ -25,8 +26,8 @@ public class GameSnapshot extends AbstractSnapshot {
     }
 
     @Override
-    public int getSizeOfReinforcement(Player player) {
-        return 3;
+    public int getSizeOfReinforcement(Snapshot.Player player) {
+        return NormalizedBoardImpl.getRemovedUnitsCount(player);
     }
 
 }
