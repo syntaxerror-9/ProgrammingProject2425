@@ -2,8 +2,6 @@ package it.unibz.inf.pp.clash.model.movehandlers;
 
 import it.unibz.inf.pp.clash.model.MoveHandler;
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
-import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
-import it.unibz.inf.pp.clash.model.snapshot.impl.NormalizedBoardImpl;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 import it.unibz.inf.pp.clash.model.snapshot.units.UpgradableUnit;
 
@@ -72,5 +70,9 @@ public class HumanMoveHandler implements MoveHandler {
         }
         return false;
 
+    }
+
+    public void resetPreviousColumnIndex() {
+        previousColumnIndex = -1;
     }
 }

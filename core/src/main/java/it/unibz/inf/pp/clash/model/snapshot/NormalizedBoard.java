@@ -12,6 +12,8 @@ import java.util.Stack;
 public interface NormalizedBoard extends Board {
     int normalizeRowIndex(int rowIndex);
 
+    int getRealRowIndex(int normalizedRowIndex);
+
     Stack<Unit>[] getNormalizedBoard();
 
     void removeUnit(int columnIndex);
@@ -20,6 +22,13 @@ public interface NormalizedBoard extends Board {
 
     Optional<Unit> getUnit(int columnIndex);
 
+    /**
+     * @param rowIndex is normalized
+     */
+    Optional<Unit> getUnit(int rowIndex, int columnIndex);
+
+    boolean isUnitInFormation(Unit unit);
+
     Snapshot.Player getPlayer();
 
     boolean canPlaceInColumn(int columnIndex);
@@ -27,6 +36,8 @@ public interface NormalizedBoard extends Board {
     void updateFormations(Hero enemyHero, NormalizedBoard enemyBoard);
 
     boolean isFull();
+
+    int getAvailableSpots();
 
     int takeDamage(int damage, int column);
 

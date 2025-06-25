@@ -19,7 +19,6 @@ public class DesktopLauncher {
         config.setForegroundFPS(60);
         config.setTitle("Clash");
         config.setWindowedMode(1600, 1200);
-
         DisplayManager displayManager = new DisplayManagerImpl(false);
 
         EventHandler eventHandler = new GameEventHandler(displayManager);

@@ -1,23 +1,18 @@
 package it.unibz.inf.pp.clash.logic;
 
+import com.badlogic.gdx.Gdx;
+import it.unibz.inf.pp.clash.model.bot.BotPlayer;
+import it.unibz.inf.pp.clash.model.impl.GameEventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
-import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
 import it.unibz.inf.pp.clash.view.DisplayManager;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
 
-import java.util.Random;
-
-import it.unibz.inf.pp.clash.model.snapshot.units.impl.Unicorn;
 import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
 
 import java.util.*;
-import java.util.ArrayList;
-import java.util.List;
-
-import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 
 
 public class GameSnapshotUtils {
@@ -48,17 +43,90 @@ public class GameSnapshotUtils {
     }
 
 
+    public static void doBotTurn(GameSnapshot gs, DisplayManager displayManager) {
+
+        var currentPlayer = gs.getActivePlayer();
+        var botHandleOpt = switch (currentPlayer) {
+            case FIRST -> gs.getFirstBotPlayer();
+            case SECOND -> gs.getSecondBotPlayer();
+        };
+        if (botHandleOpt.isEmpty()) throw new RuntimeException("Cannot perform a bot turn without a BotPlayer object.");
+        var botPlayer = botHandleOpt.get();
+        // Create a new thread so that the main rendering thread doesn't hang
+        new Thread(() -> {
+            try {
+                // --- First Move ---
+                botPlayer.PlayMove(gs);
+                Gdx.graphics.requestRendering(); // This is necessary since we're using lazy rendering
+                Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
+                // Check if the turn is still the bot's turn.
+                if (gs.getActivePlayer() != currentPlayer) {
+                    System.out.println("Bot turn was skipped");
+                    return;
+                }
+
+
+                // --- Second Move ---
+                botPlayer.PlayMove(gs);
+                Gdx.graphics.requestRendering();
+                Thread.sleep(BotPlayer.BOT_MOVE_DELAY);
+                if (gs.getActivePlayer() != currentPlayer) {
+                    System.out.println("Bot turn was skipped");
+                    return;
+                }
+                // --- Third Move ---
+                botPlayer.PlayMove(gs);
+                Gdx.graphics.requestRendering();
+
+                System.out.println("Bot has finished its turn.");
+
+                if (gs.getActivePlayer() == currentPlayer) {
+                    var handler = GameEventHandler.getInstance();
+                    handler.skipTurn(true); // Sometimes LLMs generated moves that are invalid, so we skip the turn
+                } else {
+                    System.out.println("Bot's turn was skipped.");
+                }
+
+
+            } catch (InterruptedException e) {
+                System.err.println("Bot's turn was interrupted.");
+                Thread.currentThread().interrupt();
+                var handler = GameEventHandler.getInstance();
+                handler.skipTurn(true); // Skip the turn if interrupted
+            }
+        }).start();
+    }
+
+    public static void switchTurn(GameSnapshot gs, DisplayManager displayManager) {
+        var previousActivePlayer = gs.getActivePlayer();
+        gs.setActivePlayer((previousActivePlayer == Snapshot.Player.FIRST) ? Snapshot.Player.SECOND : Snapshot.Player.FIRST);
+        gs.setActionsRemaining(3);
+        gs.clearOngoingMove();
+
+        var activePlayer = gs.getActivePlayer();
+        var activePlayerBoard = gs.getNormalizedBoard(activePlayer);
+        activePlayerBoard.updateFormations(gs.getHero(previousActivePlayer), gs.getNormalizedBoard(previousActivePlayer));
+
+        var activeHero = gs.getHero(activePlayer);
+        if (activeHero.isBot()) {
+            doBotTurn(gs, displayManager);
+        }
+    }
+
     //consuming actions
     public static void consumeAction(GameSnapshot gs, DisplayManager displayManager) {
         gs.decrementActions();
         int remaining = gs.getNumberOfRemainingActions();
+
         if (remaining <= 0) {
             Snapshot.Player previousPlayer = gs.getActivePlayer();
-            gs.switchTurn();
+            switchTurn(gs, displayManager);
             // TODO: When base project is completed
 //            handleTurnEndAbilities(gs, previousPlayer);
 
             displayManager.drawSnapshot(gs, "Turn ended. Now it's " + gs.getActivePlayer() + "'s turn.");
+            var activeHero = gs.getHero(gs.getActivePlayer());
+
         } else {
             displayManager.drawSnapshot(gs, "Action performed. Remaining: " + remaining);
         }
@@ -66,8 +134,12 @@ public class GameSnapshotUtils {
 
 
     //checking who can interact with what (no cheating!!!)
-    public static boolean isTileOwnedByActivePlayer(Snapshot snapshot, int rowIndex, DisplayManager displayManager) {
+    public static boolean isTileOwnedByActivePlayer(Snapshot snapshot, int rowIndex, DisplayManager displayManager, boolean isBotMove) {
         if (!(snapshot instanceof GameSnapshot gs)) return false;
+        var currentHero = snapshot.getHero(snapshot.getActivePlayer());
+
+        // Prevent the player from moving "as a bot"
+        if (currentHero.isBot() && !isBotMove) return false;
 
         boolean isValid = switch (gs.getActivePlayer()) {
             case FIRST -> rowIndex >= (snapshot.getBoard().getMaxRowIndex() / 2) + 1;

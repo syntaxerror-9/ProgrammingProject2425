@@ -7,7 +7,6 @@ import it.unibz.inf.pp.clash.controller.listeners.UnitRightClickListener;
 import it.unibz.inf.pp.clash.model.EventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
-import it.unibz.inf.pp.clash.model.snapshot.units.UpgradableUnit;
 import it.unibz.inf.pp.clash.view.screen.Compositor;
 import it.unibz.inf.pp.clash.view.screen.sync.AnimationCounter;
 import it.unibz.inf.pp.clash.view.singletons.ColorManager;
