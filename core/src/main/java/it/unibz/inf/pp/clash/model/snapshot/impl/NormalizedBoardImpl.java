@@ -2,6 +2,7 @@ package it.unibz.inf.pp.clash.model.snapshot.impl;
 
 import it.unibz.inf.pp.clash.model.exceptions.CoordinatesOutOfBoardException;
 import it.unibz.inf.pp.clash.model.formation.Formation;
+import it.unibz.inf.pp.clash.model.impl.GameEventHandler;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
 import it.unibz.inf.pp.clash.model.snapshot.Hero;
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
@@ -292,7 +293,6 @@ public class NormalizedBoardImpl implements NormalizedBoard {
 
             } else if (unit.getHealth() <= damage) {
                 damage -= unit.getHealth();
-                // TODO: Check if the unit was in a formation
                 removeUnit(0, column);
                 countAsRemoved(player, unit);
             } else {
@@ -498,15 +498,15 @@ public class NormalizedBoardImpl implements NormalizedBoard {
     //counting removed units - for call reinforcement
     private static final Map<Snapshot.Player, Integer> removedUnitsCount = new EnumMap<>(Snapshot.Player.class);
 
-    static {
-        removedUnitsCount.put(Snapshot.Player.FIRST, 3);
-        removedUnitsCount.put(Snapshot.Player.SECOND, 3);
-    }
-
     public static void countAsRemoved(Snapshot.Player player, Unit unit) {
         if (unit instanceof MobileUnit) {
             removedUnitsCount.merge(player, 1, Integer::sum);
         }
+    }
+
+    public static void initRemovedUnitsCount() {
+        removedUnitsCount.put(Snapshot.Player.FIRST, 3);
+        removedUnitsCount.put(Snapshot.Player.SECOND, 3);
     }
 
 

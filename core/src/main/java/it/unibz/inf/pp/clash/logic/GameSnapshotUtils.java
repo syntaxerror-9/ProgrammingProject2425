@@ -97,36 +97,43 @@ public class GameSnapshotUtils {
         }).start();
     }
 
-    public static void switchTurn(GameSnapshot gs, DisplayManager displayManager) {
+    public static void switchTurn(GameSnapshot gs, DisplayManager displayManager) throws GameEndException {
         var previousActivePlayer = gs.getActivePlayer();
+        var previousActiveHero = gs.getHero(previousActivePlayer);
         gs.setActivePlayer((previousActivePlayer == Snapshot.Player.FIRST) ? Snapshot.Player.SECOND : Snapshot.Player.FIRST);
         gs.setActionsRemaining(3);
         gs.clearOngoingMove();
 
         var activePlayer = gs.getActivePlayer();
         var activePlayerBoard = gs.getNormalizedBoard(activePlayer);
-        activePlayerBoard.updateFormations(gs.getHero(previousActivePlayer), gs.getNormalizedBoard(previousActivePlayer));
+
+        activePlayerBoard.updateFormations(previousActiveHero, gs.getNormalizedBoard(previousActivePlayer));
 
         var activeHero = gs.getHero(activePlayer);
+        if (previousActiveHero.getHealth() <= 0) {
+            System.out.println(activeHero.getName() + " WON!");
+            throw new GameEndException();
+        }
         if (activeHero.isBot()) {
             doBotTurn(gs, displayManager);
         }
+
     }
 
     //consuming actions
     public static void consumeAction(GameSnapshot gs, DisplayManager displayManager) {
+
         gs.decrementActions();
         int remaining = gs.getNumberOfRemainingActions();
 
         if (remaining <= 0) {
-            Snapshot.Player previousPlayer = gs.getActivePlayer();
-            switchTurn(gs, displayManager);
-            // TODO: When base project is completed
-//            handleTurnEndAbilities(gs, previousPlayer);
-
+            try {
+                switchTurn(gs, displayManager);
+            } catch (GameEndException e) {
+                GameEventHandler.getInstance().exitGame();
+                return;
+            }
             displayManager.drawSnapshot(gs, "Turn ended. Now it's " + gs.getActivePlayer() + "'s turn.");
-            var activeHero = gs.getHero(gs.getActivePlayer());
-
         } else {
             displayManager.drawSnapshot(gs, "Action performed. Remaining: " + remaining);
         }

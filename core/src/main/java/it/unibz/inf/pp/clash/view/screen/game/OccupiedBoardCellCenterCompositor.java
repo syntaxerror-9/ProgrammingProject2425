@@ -87,9 +87,6 @@ public class OccupiedBoardCellCenterCompositor extends Compositor {
 
     private void addStats(Unit unit, Highlights highlights, Table table) {
         String healthString = String.valueOf(unit.getHealth());
-        if (unit instanceof MobileUnit) {
-            healthString += " (" + ((MobileUnit) unit).getLevel() + ")";
-        }
 
         Label label = getLabel(healthString);
         if (highlights.health) {
