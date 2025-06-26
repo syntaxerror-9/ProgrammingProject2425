@@ -28,18 +28,6 @@ public abstract class AbstractMobileUnit extends AbstractUnit implements MobileU
     }
 
     @Override
-    public int getLevel() {
-        return level;
-    }
-
-    @Override
-    public void upgrade(int amount) {
-        if (level < 2) {
-            level = Math.min(level + amount, 2);
-        }
-    }
-
-    @Override
     public UnitColor getColor() {
         return color;
     }

@@ -3,16 +3,13 @@ package it.unibz.inf.pp.clash.model.movehandlers;
 import it.unibz.inf.pp.clash.model.MoveHandler;
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
-import it.unibz.inf.pp.clash.model.snapshot.units.UpgradableUnit;
 
-public class HumanMoveHandler implements MoveHandler {
+public class DefaultMoveHandlerImpl implements MoveHandler {
 
     int previousColumnIndex = -1;
 
     @Override
     public boolean handleMove(int rowIndex, int columnIndex, NormalizedBoard board) {
-
-
         if (previousColumnIndex == -1) {
             if (board.getUnit(board.normalizeRowIndex(rowIndex), columnIndex).isPresent()) {
                 previousColumnIndex = columnIndex;
@@ -25,8 +22,6 @@ public class HumanMoveHandler implements MoveHandler {
 
                 if (isMoveUnitMove(board, selectedMobileUnit, columnIndex, rowIndex)) {
                     moveTurn(board, selectedMobileUnit, columnIndex);
-                } else if (isUpgradeUnitMove(board, selectedMobileUnit, columnIndex, rowIndex)) {
-                    upgradeTurn(board, selectedMobileUnit, columnIndex, rowIndex);
                 } else {
                     System.out.printf("Invalid move from column %d to column %d", previousColumnIndex, columnIndex);
                     previousColumnIndex = -1;
@@ -47,32 +42,13 @@ public class HumanMoveHandler implements MoveHandler {
         playerBoard.addUnit(columnIndex, selectedUnit);
     }
 
-    private void upgradeTurn(NormalizedBoard playerBoard, MobileUnit selectedUnit, int columnIndex, int rowIndex) {
-        playerBoard.removeUnit(previousColumnIndex);
-        var targetUnit = playerBoard.getUnit(rowIndex, columnIndex);
-        if (targetUnit.isPresent() && targetUnit.get() instanceof UpgradableUnit upgradableUnit) {
-            upgradableUnit.upgrade(selectedUnit.getLevel());
-        }
-    }
-
     private boolean isMoveUnitMove(NormalizedBoard playerBoard, MobileUnit selectedUnit, int columnIndex, int rowIndex) {
-        if (isUpgradeUnitMove(playerBoard, selectedUnit, columnIndex, rowIndex)) return false;
         if (columnIndex == previousColumnIndex) return false;
         return playerBoard.canPlaceInColumn(columnIndex);
     }
 
-    private boolean isUpgradeUnitMove(NormalizedBoard playerBoard, MobileUnit selectedUnit, int columnIndex, int rowIndex) {
-        var targetUnitMaybe = playerBoard.getUnit(rowIndex, columnIndex);
-        if (targetUnitMaybe.isPresent() && targetUnitMaybe.get() instanceof MobileUnit targetUnit) {
-            if (selectedUnit == targetUnit) return false;
-            // The unit is a mobile unit. Now we need to check they match the type and color.
-            return targetUnit.matches(selectedUnit);
-        }
-        return false;
-
-    }
-
-    public void resetPreviousColumnIndex() {
+    @Override
+    public void resetState() {
         previousColumnIndex = -1;
     }
 }

@@ -1,13 +1,11 @@
 package it.unibz.inf.pp.clash.model.impl;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-
+import it.unibz.inf.pp.clash.logic.GameEndException;
 import it.unibz.inf.pp.clash.logic.GameSnapshotUtils;
 import it.unibz.inf.pp.clash.model.BoardInitializer;
 import it.unibz.inf.pp.clash.model.EventHandler;
 import it.unibz.inf.pp.clash.model.MoveHandler;
-import it.unibz.inf.pp.clash.model.movehandlers.HumanMoveHandler;
+import it.unibz.inf.pp.clash.model.movehandlers.DefaultMoveHandlerImpl;
 import it.unibz.inf.pp.clash.model.snapshot.Board;
 import it.unibz.inf.pp.clash.model.snapshot.NormalizedBoard;
 import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
@@ -15,8 +13,7 @@ import it.unibz.inf.pp.clash.model.snapshot.Snapshot;
 import static it.unibz.inf.pp.clash.model.snapshot.Snapshot.Player;
 
 import it.unibz.inf.pp.clash.model.snapshot.impl.NormalizedBoardImpl;
-import it.unibz.inf.pp.clash.model.snapshot.units.impl.Butterfly;
-import it.unibz.inf.pp.clash.model.snapshot.units.impl.UnitUtils;
+import it.unibz.inf.pp.clash.model.snapshot.units.impl.*;
 import it.unibz.inf.pp.clash.view.DisplayManager;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
 import it.unibz.inf.pp.clash.model.snapshot.impl.HeroImpl;
@@ -25,12 +22,9 @@ import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit.UnitColor;
 
 import static it.unibz.inf.pp.clash.logic.GameSnapshotUtils.*;
 
-import it.unibz.inf.pp.clash.model.snapshot.units.impl.Unicorn;
-import it.unibz.inf.pp.clash.model.snapshot.units.impl.Fairy;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 
 import java.util.Random;
-import java.util.Stack;
 import java.util.function.Function;
 
 
@@ -46,7 +40,7 @@ public class GameEventHandler implements EventHandler {
         if (instance != null) throw new RuntimeException("GameEventHandler should be a singleton");
         instance = this;
         this.displayManager = displayManager;
-        moveHandler = new HumanMoveHandler();
+        moveHandler = new DefaultMoveHandlerImpl();
     }
 
 
@@ -58,6 +52,7 @@ public class GameEventHandler implements EventHandler {
     @Override
     public void newGame(String firstHero, String secondHero) {
         newGame(firstHero, secondHero, this::initializeBoardRandom, 7, 11);
+        NormalizedBoardImpl.initRemovedUnitsCount();
         var firstTurnHero = snapshot.getHero(snapshot.getActivePlayer());
         if (firstTurnHero.isBot()) {
             GameSnapshotUtils.doBotTurn((GameSnapshot) snapshot, displayManager);
@@ -110,14 +105,9 @@ public class GameEventHandler implements EventHandler {
 
             // First: check if column contains already at the top two same units. If so, skip this column
             if (column.size() >= 2) {
-                var topUnit = column.get(column.size() - 1);
-                var secondTopUnit = column.get(column.size() - 2);
-                if (topUnit instanceof MobileUnit topUnitMobile && secondTopUnit instanceof MobileUnit secondTopUnitMobile) {
-                    // NOTE: Matches is transitive
-                    if (topUnitMobile.matches(secondTopUnitMobile) && secondTopUnitMobile.matches(unit)) {
-                        tries++;
-                        continue; // Skip this column, it already has two same units at the top
-                    }
+                if (UnitUtils.isInAttackFormation(unit, column.size(), columnIndex, normalizedBoard)) {
+                    tries++;
+                    continue;
                 }
             }
             int currentRowIndex = column.size();
@@ -231,11 +221,12 @@ public class GameEventHandler implements EventHandler {
 
         }
 
-
-        Snapshot.Player previousPlayer = gs.getActivePlayer();
-        GameSnapshotUtils.switchTurn((GameSnapshot) snapshot, displayManager);
-        // TODO: When base project is completed
-//        handleTurnEndAbilities(gs, previousPlayer);
+        try {
+            GameSnapshotUtils.switchTurn((GameSnapshot) snapshot, displayManager);
+        } catch (GameEndException e) {
+            exitGame();
+            return;
+        }
 
         System.out.println("Turn skipped. The active player is now: " + gs.getActivePlayer());
         System.out.println("Remaining actions: " + gs.getNumberOfRemainingActions());
@@ -247,9 +238,7 @@ public class GameEventHandler implements EventHandler {
     @Override
     public void callReinforcement() {
         if (!(snapshot instanceof GameSnapshot)) return;
-        if (moveHandler instanceof HumanMoveHandler) {
-            ((HumanMoveHandler) moveHandler).resetPreviousColumnIndex();
-        }
+        moveHandler.resetState();
 
         GameSnapshot gs = (GameSnapshot) snapshot;
         var board = (NormalizedBoardImpl) snapshot.getCurrentBoard();
@@ -324,19 +313,20 @@ public class GameEventHandler implements EventHandler {
 
 
     // delete unit method
-    // TODO: Check if unit is a attack formation. If it is, it cannot be destroyed.
     // Walls can be deleted.
     private void handleDelete(int rowIndex, int columnIndex, boolean isBotMove) {
         if (!isTileOwnedByActivePlayer(snapshot, rowIndex, displayManager, isBotMove)) return;
-        if (moveHandler instanceof HumanMoveHandler) {
-            ((HumanMoveHandler) moveHandler).resetPreviousColumnIndex();
-        }
+        moveHandler.resetState();
 
         var board = snapshot.getCurrentBoard();
         var unit = board.getUnit(board.normalizeRowIndex(rowIndex), columnIndex);
 
-        if (unit.isPresent()) {
+        // The unit needs to be present and not in an attack formation
+        var canBeDeleted = unit.isPresent() && unit.get() instanceof Wall ||
+                !UnitUtils.isInAttackFormation((MobileUnit) unit.get(), board.normalizeRowIndex(rowIndex), columnIndex, board);
 
+
+        if (canBeDeleted) {
             //counting for call reinforcement
             Snapshot.Player player = snapshot.getActivePlayer();
             NormalizedBoardImpl.countAsRemoved(player, unit.get());

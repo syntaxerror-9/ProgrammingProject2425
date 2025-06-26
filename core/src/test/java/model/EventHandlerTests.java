@@ -78,27 +78,4 @@ public class EventHandlerTests {
         eventHandler.selectTile(5, 0);
         assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
     }
-
-    @Test
-    public void itShouldMergeWithAUnit() {
-
-        eventHandler.newGame("Hero1", "Hero2", (board, amount, unitConstructors) -> {
-            var normalizedP1Board = eventHandler.getSnapshot().getCurrentBoard();
-            normalizedP1Board.addUnit(0, new Butterfly(UnitColor.ONE));
-            normalizedP1Board.addUnit(1, new Butterfly(UnitColor.ONE));
-        }, 3, 5);
-
-
-        var snapshot = eventHandler.getSnapshot();
-
-        var normalizedPlayerBoard = eventHandler.getSnapshot().getCurrentBoard();
-        assertTrue(normalizedPlayerBoard.getUnit(0).isPresent());
-        eventHandler.selectTile(3, 0);
-        eventHandler.selectTile(3, 1);
-        Utils.PrintBoard(snapshot.getBoard());
-        assertTrue(normalizedPlayerBoard.getUnit(0).isEmpty());
-        assertEquals(2, ((MobileUnit) normalizedPlayerBoard.getUnit(1).get()).getLevel());
-
-
-    }
 }

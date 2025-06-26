@@ -9,4 +9,6 @@ public interface MoveHandler {
      **/
     boolean handleMove(int rowIndex, int columnIndex, NormalizedBoard board);
 
+    void resetState();
+
 }

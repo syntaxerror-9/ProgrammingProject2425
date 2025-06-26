@@ -20,6 +20,8 @@ import java.util.Optional;
 
 public class LLMBot implements BotPlayer {
 
+    static private boolean debug = false; // Flag to enable / disable logging.
+
     private final StringBuilder llmContext = new StringBuilder();
     private final String apiUrl = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -57,7 +59,8 @@ public class LLMBot implements BotPlayer {
                     """.stripIndent());
 
             var jsonPayload = jsonSb.toString();
-            System.out.println("JSON Payload: " + jsonPayload);
+            if (debug)
+                System.out.println("JSON Payload: " + jsonPayload);
 
 
             try (OutputStream os = connection.getOutputStream()) {
@@ -66,7 +69,8 @@ public class LLMBot implements BotPlayer {
             }
 
             int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
+            if (debug)
+                System.out.println("Response Code: " + responseCode);
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 try (var reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"))) {
                     StringBuilder response = new StringBuilder();
@@ -81,7 +85,8 @@ public class LLMBot implements BotPlayer {
                     var responseContent = split.trim().substring(1, split.length() - 1);
 
 
-                    System.out.println("Response: " + responseContent);
+                    if (debug)
+                        System.out.println("Response: " + responseContent);
                     return Optional.of(responseContent);
 
                 }
@@ -177,7 +182,8 @@ public class LLMBot implements BotPlayer {
                 """);
 
         appendMessageToLLMContext("user", escapeJson(llmPrompt.toString()));
-        System.out.println("LLM Prompt: " + llmPrompt.toString());
+        if (debug)
+            System.out.println("LLM Prompt: " + llmPrompt.toString());
         var responseMaybe = sendRestMessage();
         // This might throw an exception, but we catch it in PlayMove
         appendMessageToLLMContext("assistant", responseMaybe.get());

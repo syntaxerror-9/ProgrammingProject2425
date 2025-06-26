@@ -3,6 +3,7 @@ package it.unibz.inf.pp.clash.model.bot;
 import it.unibz.inf.pp.clash.model.bot.botmoves.CallReinforcement;
 import it.unibz.inf.pp.clash.model.bot.botmoves.DeleteUnit;
 import it.unibz.inf.pp.clash.model.bot.botmoves.MoveUnit;
+import it.unibz.inf.pp.clash.model.bot.botmoves.SkipTurn;
 import it.unibz.inf.pp.clash.model.snapshot.impl.GameSnapshot;
 import it.unibz.inf.pp.clash.model.snapshot.units.MobileUnit;
 import it.unibz.inf.pp.clash.model.snapshot.units.Unit;
@@ -123,8 +124,26 @@ public class ProceduralBot implements BotPlayer {
             }
         }
 
+        if (gs.getSizeOfReinforcement(gs.getActivePlayer()) > 0) {
+            return new CallReinforcement();
+        } else {
+            // Prevent the bot from getting stuck. Make a random move.
+            int randFrom, randTo;
 
-        return new CallReinforcement();
+            while (true) {
+                randFrom = new Random().nextInt(botBoard.getMaxColumnIndex() + 1);
+                randTo = new Random().nextInt(botBoard.getMaxColumnIndex() + 1);
+
+                if (randFrom == randTo) continue;
+                if (boardStacks[randFrom].isEmpty()) continue;
+                if (boardStacks[randTo].size() - 1 == botBoard.getMaxRowIndex()) continue;
+
+                return new MoveUnit(randFrom, randTo);
+            }
+
+        }
+
+
     }
 
 }
