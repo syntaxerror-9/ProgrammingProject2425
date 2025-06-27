@@ -65,10 +65,6 @@ Furthermore we've introduced the interface `NormalizedBoard`, which uses composi
 representing each column as a stack ). All of the operations that modify the state of the board are done through the
 NormalizedBoard, which are then _applied_ to the actual Board.
 
-The Bot players used the `BotPlayer` interface, which is implemented by the `ProceduralBot` and `LLMBot` classes.. All
-of the operations that modify the state of the board are done through the NormalizedBoard, which are then _applied_ to
-the actual Board.
-
 The Bot players use the `BotPlayer` interface, which is implemented by the `ProceduralBot` and `LLMBot` classes.
 In order to not make the game freeze ( since rendering happens on the same thread as the game logic ), the bot's actions
 are executed in a separate thread, which is started whenever the bot is playing a turn.
@@ -99,4 +95,13 @@ Challenges faced during the project:
 * Daniel Lauri:
     * The main challenge was to create the right abstractions for the game mechanics, i also had most of the
       implementation of the NormalizedBoard, which was a bit tricky to get right.
+     
+* Lorenzo Banino:
+    * The main challenge was to implement the logic for detecting and creating formations on the game board like walls,
+      because for example: vertical attack formations were not being recognized when they were created after a wall due to
+      the fact that detection relied on sequential comparisons. Finding a solution was hard, I had to swap to a sliding
+      window approach to make it work.
+
+    * Another issue I had was solving conflicts, being new to git and team-working on the same project presented me
+      with some difficulties in understanding how to merge our branches at best, without damaging the code. 
 
