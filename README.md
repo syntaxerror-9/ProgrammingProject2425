@@ -63,7 +63,8 @@ Furthermore we've introduced the interface `NormalizedBoard`, which uses composi
 ` implementation, and provides a more convenient way to reason about each of the player's board.
 ( For example, it provides board independent coordinates, and a way to never represent invalid states of the board by
 representing each column as a stack ). All of the operations that modify the state of the board are done through the
-NormalizedBoard, which are then _applied_ to the actual Board.
+NormalizedBoard, which are then _applied_ to the actual Board. This also allows playing with different sizes of boards, 
+it would simply be a matter of changing values in the newGame default parameters.
 
 The Bot players use the `BotPlayer` interface, which is implemented by the `ProceduralBot` and `LLMBot` classes.
 In order to not make the game freeze ( since rendering happens on the same thread as the game logic ), the bot's actions
@@ -73,7 +74,7 @@ Additional dependencies used in the project:
 
 * Mockito
     * We've used Mockito to mock the `DisplayManager` in order to create more thorough tests that could mimic the way a
-      player would play the game.
+      player would play the game. We've also added some CI script such that tests run on every commit and pull request.
 
 Programming techniques applied during the project: streams, composition, inheritance, unit tests, threads ...
 
