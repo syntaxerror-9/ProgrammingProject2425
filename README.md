@@ -1,175 +1,102 @@
-# Board game
+# Programming Project 2024/2025
 
-This repository contains a basic graphical user interface for games with mechanics analogous to the ones of
-[Might & Magic: Clash of Heroes](https://www.dotemu.com/games/might-magic-clash-of-heroes-definitive-edition/) or
-[Legend of Solgard](https://snowprintstudios.com/solgard/).
+## University of Bozen-Bolzano, Faculty of Computer Science
 
-The graphical interface uses the [libGDX](https://libgdx.com/) library.\
-All images were downloaded from [Game-icons.net](https://game-icons.net/).
+### Members of the group:
 
-## Requirements
+Daniel Lauri ([syntaxerror9](https://github.com/syntaxerror-9)), Lorenzo
+Banino ([LorenzoB87](https://github.com/LorenzoB87)), Arshad Qureshi
+([arshad-spec](https://github.com/arshad-spec))
 
-- Java JDK version 17 or higher
-- Gradle version 7.2 or higher
+### Building and running the project
 
-## Usage
+First, create the gradle wrapper by running `gradle wrapper` in the root folder.
 
-### From a terminal
+Then,
+For Windows
 
-First, run the Gradle wrapper (once is enough):
-
-```bash
-gradle wrapper
 ```
-#### Starting the application
+./gradlew.bat run
+```
 
-- on macOS/Linux:
+for Linux/Macos
 
-```bash
+```
 ./gradlew run
 ```
 
-- on Windows:
+Note: if you want to play the game with the Bot(LLM) that uses the external Groq api, you'll need to have the
+environment
+variable `GROQ_API_KEY` set to your Groq API key.
 
-```bash
-gradlew.bat run
-```
+### Description
 
-#### Running the unit tests
+This project is based on the game mechanics
+of [Might & Magic: Clash of Heroes](https://en.wikipedia.org/wiki/Might_&_Magic:_Clash_of_Heroes).
 
-- on macOS/Linux:
+It is a turn-based strategy game where the player controls a side of the board, the player can perform the following
+moves:
 
-```bash
-./gradlew test
-```
+* Move a unit from one column to another column
+* Delete a unit
+* Call reinforcements
+* Skip the turn
 
-- on Windows:
+Each player has its own resources (such as HP, turns left, reinforcements count) and the objective of each player is to
+bring the opponent's hp below or equal to zero.
 
-```bash
-gradlew.bat test
-```
+Each player can create attacking and defensive formations like in the base game, and each unit has different attack
+values, hp and attack cooldowns.
 
+Additionally, the game supports playing vs bots, which can be chosen when selecting the player. There are two possible
+bot opponents:
 
-### With an IDE
-Open this repository as a Gradle project.
+* Bot - Which is a programmed bot that is written as code (ProceduralBot)
+* Bot(LLM) - Which is a bot that gets controlled by an external LLM using Groq api
 
-Then to start the application, run the method [DesktopLauncher.main](desktop/src/it/unibz/inf/pp/clash/DesktopLauncher.java)
-  (in your running configuration, you may need to specify `assets` as the Java working directory).
+### Implementation of the project
 
+All of the game mechanics are implemented through the `GameEventHandler`, which acts as an entry point for all of the
+actions a player can take.
 
-## Design
+Furthermore we've introduced the interface `NormalizedBoard`, which uses composition to abstract the base `Board
+` implementation, and provides a more convenient way to reason about each of the player's board.
+( For example, it provides board independent coordinates, and a way to never represent invalid states of the board by
+representing each column as a stack ). All of the operations that modify the state of the board are done through the
+NormalizedBoard, which are then _applied_ to the actual Board.
 
-### Game snapshot
+The Bot players used the `BotPlayer` interface, which is implemented by the `ProceduralBot` and `LLMBot` classes.. All
+of the operations that modify the state of the board are done through the NormalizedBoard, which are then _applied_ to
+the actual Board.
 
-The project is designed around the notion of game _snapshot_.\
-A snapshot is an object that intuitively stores all the information needed to resume an interrupted game (state of the board, remaining health, active player, etc.).\
-In other words, you can think of a snapshot as a save state.
+The Bot players use the `BotPlayer` interface, which is implemented by the `ProceduralBot` and `LLMBot` classes.
+In order to not make the game freeze ( since rendering happens on the same thread as the game logic ), the bot's actions
+are executed in a separate thread, which is started whenever the bot is playing a turn.
 
-- The [Snapshot](core/src/main/java/it/unibz/inf/pp/clash/model/snapshot/Snapshot.java) Java interface specifies which information a snapshot should contain.\
-  The documentation of this interface
-  (and the interfaces that it refers to, transitively) should be sufficient for you to understand what a snapshot is.\
-  In particular:
+Additional dependencies used in the project:
 
-  - The method [Snapshot.getBoard](core/src/main/java/it/unibz/inf/pp/clash/model/snapshot/Snapshot.java)
-    should return the current board.
+* Mockito
+    * We've used Mockito to mock the `DisplayManager` in order to create more thorough tests that could mimic the way a
+      player would play the game.
 
-  - A board must in turn implement the interface [Board](core/src/main/java/it/unibz/inf/pp/clash/model/snapshot/Board.java).\
-    A board is a rectangular grid.
-    Rows and columns on the board are indexed from left to right and top to bottom, with natural numbers, starting at index 0.
-    So the upper-left tile has index (0,0)
+Programming techniques applied during the project: streams, composition, inheritance, unit tests, threads ...
 
-    _Note_: several (adjacent) tiles may be occupied by the same unit (i.e. by the same Java object).
+### Description of the human experience in this project
 
-  - A unit must implement the interface [Unit](core/src/main/java/it/unibz/inf/pp/clash/model/snapshot/units/Unit.java).\
-    You will find several implementations of this interface ([Unicorn](core/src/main/java/it/unibz/inf/pp/clash/model/snapshot/units/impl/Unicorn.java), etc.).
-    Feel free to modify them and/or add your own.
+The workload was initially divided evenly between the three members of the group, we've created a shared board where
+each member could choose what to implement from the base game [link](https://github.com/users/syntaxerror-9/projects/4)
 
-- The project only contains a [dummy implementation](core/src/main/java/it/unibz/inf/pp/clash/model/impl/dummy/snapshot/DummySnapshot.java) of the Snapshot interface.\
-  _Tip:_ in order to implement it properly, you can create a class that extends the abstract class [AbstractSnapshot](core/src/main/java/it/unibz/inf/pp/clash/model/snapshot/impl/AbstractSnapshot.java).
+However, the work was done by Daniel Lauri and Lorenzo Banino, who implemented all of the game mechanics.
 
-### Model-view-controller
+Usage of git:
 
-In order to decouple the graphical interface from the mechanics of the game, the project (loosely) follows the [model-view-controller](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller) (MVC) pattern.\
-This means that the code is partitioned into three components called
-[model](core/src/main/java/it/unibz/inf/pp/clash/model/README.md),
-[view](core/src/main/java/it/unibz/inf/pp/clash/view/README.md) and
-[controller](core/src/main/java/it/unibz/inf/pp/clash/controller/README.md):
+* Each member had their own branch which would get merged into the main branch after code review/merge conflict
+  resolution
+* Some commits are with temporary names because Daniel Lauri forgot to squash the commits before merging the branch
 
-- The _controller_ registers the user actions (click, hovering, etc.), and notifies the model of each action.
-- The _model_ is the core of the application.
-  It keeps track of the state of the game and updates it after each action.
-  The model takes its input from the controller, and outputs drawing instructions to the view.
-- The _view_ is in charge of drawing the game on screen. It takes its input from the model.
+Challenges faced during the project:
 
-_Note:_ This is not the most common interpretation of the MVC pattern: in many applications, the model remains passive,
-whereas in this project the model gives instructions to the view.
+* Daniel Lauri:
+    * The main challenge was to create the right abstractions for the game mechanics, i also had most of the
+      implementation of the NormalizedBoard, which was a bit tricky to get right.
 
-## How to implement your own game
-
-The controller and the view components (a.k.a. the graphical interface) are already implemented.
-So In order to develop your own game, you only need to implement the model (i.e. the mechanics of the game).\
-To this end, you can modify and extend the content of the folder [model](core/src/main/java/it/unibz/inf/pp/clash/model/README.md).
-
-Your code only needs to respect the interfaces that specify:
-
-- how the controller communicates with the model, and
-- how the model communicates with the view.
-
-Here is a brief description of these two interfaces:
-
-#### The controller-model interface
-
-- The [EventHandler](core/src/main/java/it/unibz/inf/pp/clash/model/EventHandler.java) Java interface specifies how the controller
-  notifies the model of user actions.\
-  For instance, when the user clicks on the "exit game" button, the controller calls the method
-  [EventHandler.exitGame](core/src/main/java/it/unibz/inf/pp/clash/model/EventHandler.java).
-
-- Your primary task is to implement the methods of the [EventHandler](core/src/main/java/it/unibz/inf/pp/clash/model/EventHandler.java) interface.\
-  For now, the code only contains a [dummy implementation](core/src/main/java/it/unibz/inf/pp/clash/model/impl/DummyEventHandler.java).
-  You should instead create your own class that implements this interface.\
-  After creating this class, you can incorporate it to the project as follows:
-  in the method [DesktopLauncher.main](desktop/src/it/unibz/inf/pp/clash/DesktopLauncher.java), replace the instruction
-
-```Java
-        EventHandler eventHandler = new DummyEventHandler(displayManager);
-```
-
-with
-
-```Java
-        EventHandler eventHandler = new MyEventHandler(displayManager);
-```
-
-where `MyEventHandler` is the name of your class.
-
-#### The model-view interface
-
-- The [DisplayManager](core/src/main/java/it/unibz/inf/pp/clash/view/DisplayManager.java) Java interface specifies how the model
-  provides drawing instructions to the view.
-  This interface is already implemented (with the class [DisplayManagerImpl](core/src/main/java/it/unibz/inf/pp/clash/view/impl/DisplayManagerImpl.java)), as part of the view component.
-  You can implement a fully functional game without modifying this implementation.
-
-- In particular, you can draw a snapshot on screen by calling the method [DisplayManager.drawSnapshot](core/src/main/java/it/unibz/inf/pp/clash/view/DisplayManager.java)
-  (with your snapshot as argument).\
-  If there was another snapshot on screen prior to this call, then the two snapshots will be compared and their differences highlighted,
-  with a fade-in animation.\
-  Use these animations to notify the user of the effects of his actions.\
-  Note that sending snapshots during an animation will not interrupt it.
-  Instead, your snapshots will be buffered, and displayed after all pending animations have terminated.
-
-## To go further
-
-You can implement a fully functional game (player VS player and/or player VS bot) by modifying the model component only,
-without altering the code in the
-[view](core/src/main/java/it/unibz/inf/pp/clash/view/README.md) or
-[controller](core/src/main/java/it/unibz/inf/pp/clash/controller/README.md) folders.
-
-However, you may also want to modify the graphical interface:
-
-- For (lightweight) aesthetic customization (e.g. changing colors),
-  you can edit some of the property files of the project.
-  They are all located in the `assets` folder, and their precise locations are listed in the [FileManager](core/src/main/java/it/unibz/inf/pp/clash/view/singletons/FileManager.java) class.\
-  You can also add your own (.png) images under `assets/images/png`:
-  place the images in the appropriate subfolders (the folder structure should be self-explanatory),
-  and reference them in the appropriate property files (e.g. in [this file](assets/images/portraits.properties) for the portrait of a hero).
-- For more advanced customization, you can follow [online tutorials](https://libgdx.com/wiki/start/demos-and-tutorials) about LibGDX.
